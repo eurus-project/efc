@@ -47,38 +47,41 @@ static int process_imu(const struct device *dev)
 	struct sensor_value temperature;
 	struct sensor_value accel[3];
 	struct sensor_value gyro[3];
-	int rc = sensor_sample_fetch(dev);
-
-	if (rc == 0) {
-		rc = sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ,
-					accel);
-	}
-	if (rc == 0) {
-		rc = sensor_channel_get(dev, SENSOR_CHAN_GYRO_XYZ,
-					gyro);
+	int ret = sensor_sample_fetch(dev);
+	if (ret < 0){
+		LOG_ERR("Could not fetch data from IMU!");
+		return ret;
 	}
 
-	if (rc == 0) {
-		rc = sensor_channel_get(dev, SENSOR_CHAN_DIE_TEMP,
-					&temperature);
+	ret = sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, accel);
+	if (ret < 0){
+		LOG_ERR("Could not get accelerometer data!");
+		return ret;
+	}
+	
+	ret = sensor_channel_get(dev, SENSOR_CHAN_GYRO_XYZ, gyro);
+	if (ret < 0){
+		LOG_ERR("Could not get gyroscope data!");
+		return ret;
 	}
 
-	if (rc == 0) {
-		printf("Temperature:%g Cel\n"
-		       "Accelerometer: %f %f %f m/s/s\n"
-		       "Gyroscope:  %f %f %f rad/s\n",
-		       sensor_value_to_double(&temperature),
-		       sensor_value_to_double(&accel[0]),
-		       sensor_value_to_double(&accel[1]),
-		       sensor_value_to_double(&accel[2]),
-		       sensor_value_to_double(&gyro[0]),
-		       sensor_value_to_double(&gyro[1]),
-		       sensor_value_to_double(&gyro[2]));
-	} else {
-		printf("sample fetch/get failed: %d\n", rc);
+	ret = sensor_channel_get(dev, SENSOR_CHAN_DIE_TEMP,	&temperature);
+	if (ret < 0){
+		LOG_WRN("Could not get IMU die temperature data!");
 	}
 
-	return rc;
+	printf("Temperature:%g Cel\n"
+	       "Accelerometer: %f %f %f m/s/s\n"
+	       "Gyroscope:  %f %f %f rad/s\n",
+	       sensor_value_to_double(&temperature),
+	       sensor_value_to_double(&accel[0]),
+	       sensor_value_to_double(&accel[1]),
+	       sensor_value_to_double(&accel[2]),
+	       sensor_value_to_double(&gyro[0]),
+	       sensor_value_to_double(&gyro[1]),
+	       sensor_value_to_double(&gyro[2]));
+
+	return 0;
 }
 
 /* 1000 msec = 1 sec */
