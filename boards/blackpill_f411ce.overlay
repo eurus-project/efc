@@ -24,3 +24,12 @@
                 spi-max-frequency = <24000000>;
         };
 };
+
+&i2c1 {
+	main_imu: mpu6050@68 {
+		compatible = "invensense,mpu6050";
+		reg = <0x68>;
+		status = "okay";
+		int-gpios = <&gpiob 7 GPIO_ACTIVE_HIGH>;
+	};
+};

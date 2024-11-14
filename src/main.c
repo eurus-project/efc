@@ -11,6 +11,7 @@
 #include <zephyr/fs/fs.h>
 #include <zephyr/fs/littlefs.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/drivers/sensor.h>
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/usb/usbd.h>
 #include <zephyr/drivers/uart.h>
@@ -40,6 +41,45 @@ static int enable_usb_device_next(void)
 	return 0;
 }
 #endif /* defined(CONFIG_USB_DEVICE_STACK_NEXT) */
+
+static int process_imu(const struct device *dev)
+{
+	struct sensor_value temperature;
+	struct sensor_value accel[3];
+	struct sensor_value gyro[3];
+	int rc = sensor_sample_fetch(dev);
+
+	if (rc == 0) {
+		rc = sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ,
+					accel);
+	}
+	if (rc == 0) {
+		rc = sensor_channel_get(dev, SENSOR_CHAN_GYRO_XYZ,
+					gyro);
+	}
+
+	if (rc == 0) {
+		rc = sensor_channel_get(dev, SENSOR_CHAN_DIE_TEMP,
+					&temperature);
+	}
+
+	if (rc == 0) {
+		printf("Temperature:%g Cel\n"
+		       "Accelerometer: %f %f %f m/s/s\n"
+		       "Gyroscope:  %f %f %f rad/s\n",
+		       sensor_value_to_double(&temperature),
+		       sensor_value_to_double(&accel[0]),
+		       sensor_value_to_double(&accel[1]),
+		       sensor_value_to_double(&accel[2]),
+		       sensor_value_to_double(&gyro[0]),
+		       sensor_value_to_double(&gyro[1]),
+		       sensor_value_to_double(&gyro[2]));
+	} else {
+		printf("sample fetch/get failed: %d\n", rc);
+	}
+
+	return rc;
+}
 
 /* 1000 msec = 1 sec */
 #define SLEEP_TIME_MS 1000
@@ -88,6 +128,13 @@ int main(void) {
     if (ret < 0) {
         return 0;
     }
+
+	const struct device *const main_imu = DEVICE_DT_GET(DT_NODELABEL(main_imu));
+
+	if (!device_is_ready(main_imu)) {
+		LOG_ERR("Device %s is not ready\n", main_imu->name);
+		return 0;
+	}
 
 	mountpoint->storage_dev = (void *)disk_pdrv;
 	mountpoint->mnt_point = disk_mount_pt;
@@ -147,6 +194,9 @@ int main(void) {
 
         led_state = !led_state;
         printf("LED state: %s\n", led_state ? "ON" : "OFF");
+
+		process_imu(main_imu);
+
         k_msleep(SLEEP_TIME_MS);
     }
     
