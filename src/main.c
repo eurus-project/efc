@@ -10,13 +10,15 @@
 #include <zephyr/device.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/fs/littlefs.h>
-#include <zephyr/sys/printk.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/usb/usbd.h>
 #include <zephyr/drivers/uart.h>
 
 BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
 	     "Console device is not ACM CDC UART device");
+
+LOG_MODULE_REGISTER(main);
 
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
 static struct usbd_context *sample_usbd;
@@ -92,7 +94,7 @@ int main(void) {
 
 	ret = fs_mount(mountpoint);
     if (ret < 0) {
-        printf("Could not mount filesystem!\n");
+        LOG_ERR("Could not mount filesystem!\n");
 		return 0;
 	}
 
@@ -104,36 +106,36 @@ int main(void) {
 	snprintf(fname1, sizeof(fname1), "%s/boot_count", mountpoint->mnt_point);
     ret = fs_open(&file, fname1, FS_O_RDWR | FS_O_CREATE);
     if (ret < 0) {
-        printf("Could not open file!\n");
+        LOG_ERR("Could not open file!\n");
         return 0;
     }
 
     ret = fs_read(&file, &boot_count, sizeof(boot_count));
 	if (ret < 0) {
-		printf("Could not read from file!\n");
+		LOG_ERR("Could not read from file!\n");
         return 0;
     }
 
 	ret = fs_seek(&file, 0, FS_SEEK_SET);
 	if (ret < 0) {
-		printf("Could not seek to beggining of the file!\n");
+		LOG_ERR("Could not seek to beggining of the file!\n");
 		return 0;
 	}
 
 	boot_count += 1;
 	ret = fs_write(&file, &boot_count, sizeof(boot_count));
 	if (ret < 0) {
-		printf("Could not write to file!\n");
+		LOG_ERR("Could not write to file!\n");
 		return 0;
 	}
 
 	ret = fs_close(&file);
 	if (ret < 0) {
-		printf("Could not close file!\n");
+		LOG_ERR("Could not close file!\n");
 		return 0;
 	}
 
-    printf("Boot count: %d\n", (int)boot_count);
+    LOG_INF("Boot count: %d\n", (int)boot_count);
 
     bool led_state = true;
 
