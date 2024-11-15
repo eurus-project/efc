@@ -88,7 +88,6 @@ static void handle_imu_data_ready(const struct device *dev,
 	int ret = sensor_sample_fetch(dev);
 	if (ret < 0){
 		LOG_ERR("Could not fetch data from IMU!");
-		return ret;
 	}
 }
 
