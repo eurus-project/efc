@@ -47,12 +47,8 @@ static int process_imu(const struct device *dev)
 	struct sensor_value temperature;
 	struct sensor_value accel[3];
 	struct sensor_value gyro[3];
-	int ret = sensor_sample_fetch(dev);
-	if (ret < 0){
-		LOG_ERR("Could not fetch data from IMU!");
-		return ret;
-	}
 
+	int ret;
 	ret = sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, accel);
 	if (ret < 0){
 		LOG_ERR("Could not get accelerometer data!");
@@ -82,6 +78,18 @@ static int process_imu(const struct device *dev)
 	       sensor_value_to_double(&gyro[2]));
 
 	return 0;
+}
+
+static struct sensor_trigger trigger;
+
+static void handle_imu_data_ready(const struct device *dev,
+	                              const struct sensor_trigger *trig)
+{
+	int ret = sensor_sample_fetch(dev);
+	if (ret < 0){
+		LOG_ERR("Could not fetch data from IMU!");
+		return ret;
+	}
 }
 
 /* 1000 msec = 1 sec */
@@ -138,6 +146,18 @@ int main(void) {
 		LOG_ERR("Device %s is not ready\n", main_imu->name);
 		return 0;
 	}
+
+	trigger = (struct sensor_trigger) {
+		.type = SENSOR_TRIG_DATA_READY,
+		.chan = SENSOR_CHAN_ALL,
+	};
+
+	if (sensor_trigger_set(main_imu, &trigger, handle_imu_data_ready) < 0) {
+		LOG_ERR("Cannot configure main IMU trigger\n");
+		return 0;
+	}
+
+	LOG_INF("Configured IMU for triggered sampling.\n");
 
 	mountpoint->storage_dev = (void *)disk_pdrv;
 	mountpoint->mnt_point = disk_mount_pt;
