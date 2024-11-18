@@ -102,6 +102,15 @@ static struct fs_mount_t __mp = {
 
 struct fs_mount_t *mountpoint = &__mp;
 
+#if defined(CONFIG_DISK_DRIVER_SDMMC)
+  #define CONFIG_SDMMC_VOLUME_NAME "SD"
+#elif defined(CONFIG_DISK_DRIVER_MMC)
+  #define CONFIG_SDMMC_VOLUME_NAME "SD2"
+#else
+  #error "No disk device defined, is your board supported?"
+#endif
+
+
 static const char *disk_mount_pt = "/" CONFIG_SDMMC_VOLUME_NAME ":";
 static const char *disk_pdrv = CONFIG_SDMMC_VOLUME_NAME;
 
