@@ -105,3 +105,7 @@ Pylint.txt
 SphinxLint.txt
 TextEncoding.txt
 YAMLLint.txt
+
+
+CMakeFiles
+CMakeCache.txt
