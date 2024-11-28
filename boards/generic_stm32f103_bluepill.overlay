@@ -1,0 +1,25 @@
+/* Overlay file to change LED pin to PB4 */
+
+/ {
+    chosen {
+        zephyr,console = &cdc_acm_uart;
+    };
+    leds {
+        led: led {
+            gpios = <&gpioc 13 GPIO_ACTIVE_HIGH>;
+            label = "LD";
+        };
+        gpio_a6 : gpioa6 {
+            gpios = <&gpioa 6 GPIO_ACTIVE_HIGH>;
+            label = "GPIO A6";
+        };
+    };
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+
