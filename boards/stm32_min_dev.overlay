@@ -1,0 +1,24 @@
+/ {
+    leds {
+        compatible = "gpio-leds";
+        led: led {
+            gpios = <&gpioc 13 GPIO_ACTIVE_HIGH>;
+            label = "LD";
+        };
+    };
+
+    aliases {
+        led0 = &led;
+    };
+};
+
+/* Enable PWM */
+&timers1 {
+    status = "okay";
+
+    pwm1: pwm {
+        status = "okay";
+        pinctrl-0 = <&tim1_ch1_pwm_out_pa8>;
+        pinctrl-names = "default";
+    };
+};

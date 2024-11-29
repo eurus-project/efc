@@ -1,0 +1,45 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Clean and Build - generic_stm32f103_bluepill - jlink",
+            "type": "shell",
+            "command": "rm -rf build && west build -b generic_stm32f103_bluepill && west flash --runner jlink --device STM32F103C8",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Clean and Build - weact_stm32h562_core - jlink",
+            "type": "shell",
+            "command": "rm -rf build && west build -b weact_stm32h562_core && west flash --runner jlink --device STM32F103C8",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Clean and Build - generic_stm32f103_bluepill - stlink",
+            "type": "shell",
+            "command": "rm -rf build && west build -b generic_stm32f103_bluepill",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Clean and Build - weact_stm32h562_core - stlink",
+            "type": "shell",
+            "command": "rm -rf build && west build -b weact_stm32h562_core && west flash --runner stlink --device STM32F103C8",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+    ]
+}
