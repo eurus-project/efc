@@ -1,5 +1,0 @@
-# Always set CONFIG_BOARD here. This isn't meant to be customized,
-# but is set as a "default" due to Kconfig language restrictions.
-config BOARD
-    default "generic_stm32f103_bluepill"
-    depends on BOARD_GENERIC_STM32F103_BLUEPILL

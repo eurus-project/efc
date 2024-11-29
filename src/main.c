@@ -10,9 +10,15 @@
 int main(void)
 {
     /* Get the PWM device */
-    const struct device *pwm_dev = DEVICE_DT_GET(DT_NODELABEL(pwm1));
+    const struct device *pwm_dev_1 = DEVICE_DT_GET(DT_NODELABEL(pwm1));
+    const struct device *pwm_dev_2 = DEVICE_DT_GET(DT_NODELABEL(pwm2));
+    const struct device *pwm_dev_3 = DEVICE_DT_GET(DT_NODELABEL(pwm3));
+    const struct device *pwm_dev_4 = DEVICE_DT_GET(DT_NODELABEL(pwm4));
 
-    if (!device_is_ready(pwm_dev))
+    if (!device_is_ready(pwm_dev_1) ||
+        !device_is_ready(pwm_dev_2) ||
+        !device_is_ready(pwm_dev_3) ||
+        !device_is_ready(pwm_dev_4))
     {
         printk("Error: PWM device is not ready\n");
         return;
@@ -21,15 +27,32 @@ int main(void)
     printk("PWM device is ready!\n");
     
     /* Setting the PWM signal */
-    int ret = pwm_set(pwm_dev,
-                      1, 
-                      PWM_USEC(PWM_PERIOD_US),
-                      PWM_USEC(PWM_DUTY_CYCLE_US),
-                      0);
+    int ret1, ret2, ret3, ret4;
+
+    ret1 = pwm_set(pwm_dev_1,
+                  1, 
+                  PWM_USEC(PWM_PERIOD_US),
+                  PWM_USEC(PWM_DUTY_CYCLE_US),
+                  0);
+    ret2 = pwm_set(pwm_dev_2,
+                  2, 
+                  PWM_USEC(PWM_PERIOD_US),
+                  PWM_USEC(PWM_DUTY_CYCLE_US),
+                  0);
+    ret3 = pwm_set(pwm_dev_3,
+                  3, 
+                  PWM_USEC(PWM_PERIOD_US),
+                  PWM_USEC(PWM_DUTY_CYCLE_US),
+                  0);
+    ret4 = pwm_set(pwm_dev_4,
+                  4, 
+                  PWM_USEC(PWM_PERIOD_US),
+                  PWM_USEC(PWM_DUTY_CYCLE_US),
+                  0);
     
-    if (ret)
+    if (ret1 || ret2 || ret3 || ret4)
     {
-        printk("Error %d: Failed to set PWM\n", ret);
+        printk("Error: Failed to set PWM\n");
         return;
     }
 

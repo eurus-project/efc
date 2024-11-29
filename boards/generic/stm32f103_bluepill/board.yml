@@ -1,5 +1,0 @@
-board:
-  name: generic_stm32f103_bluepill
-  vendor: generic
-  socs:
-    - name: stm32f103xb
