@@ -51,7 +51,7 @@ doc/doc.warnings
 .*project
 .settings
 .envrc
-.vscode
+#.vscode
 hide-defaults-note
 venv
 .venv
@@ -107,5 +107,4 @@ TextEncoding.txt
 YAMLLint.txt
 
 
-CMakeFiles
-CMakeCache.txt
+files
