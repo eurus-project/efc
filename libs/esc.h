@@ -29,12 +29,7 @@ typedef enum {
 /********************************** Functions *********************************/
 
 
-status_t ESC_Init(pwm_spec_dt *pwmSpec, esc_protocol_t protocol);
-void ESC_DeInit(pwm_spec_dt *pwmSpec);
-
-
-void ESC_SetThrottle(pwm_spec_dt *pwmSpec, uint32_t throttle);
-
+status_t ESC_Init(const struct device *pwm_dev, esc_protocol_t protocol);
 
 
 #endif

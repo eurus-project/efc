@@ -4,20 +4,17 @@
  * @author Eurus organization
  */
 
-
-
 /******************************** Includes ************************************/
 #include "esc.h"
 #include <stdlib.h>
 #include <stdint.h>
-#include <zephyr/kernel.h>
 #include <zephyr/drivers/pwm.h>
 
 
 /******************************** Functions ***********************************/
-status_t ESC_Init(pwm_spec_dt *pwmSpec, esc_protocol_t protocol)
+status_t ESC_Init(const struct device *pwm_dev, esc_protocol_t protocol)
 {
-    if (!pwm_is_ready_dt(pwmSpec))
+    if (!device_is_ready(pwm_dev))
         return -1;
     
     switch (protocol)
@@ -39,13 +36,3 @@ status_t ESC_Init(pwm_spec_dt *pwmSpec, esc_protocol_t protocol)
     }
 }       
 
-void ESC_DeInit(pwm_spec_dt *pwmSpec)
-{
-
-}
-
-
-void ESC_SetThrottle(pwm_spec_dt *pwmSpec, uint32_t throttle)
-{
-
-}

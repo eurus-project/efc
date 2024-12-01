@@ -1,6 +1,8 @@
 {
     "files.associations": {
-        "swdp.h": "c"
+        "swdp.h": "c",
+        "device.h": "c",
+        "pwm.h": "c"
     },
     "idf.flashType": "UART"
 }
