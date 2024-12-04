@@ -12,7 +12,7 @@
 			"executable": "${workspaceFolder}/build/zephyr/zephyr.elf",
 			"runToEntryPoint": "main",
 			"serverpath": "/home/filip/Programs/stm-openocd/bin/openocd", // Change this path to your specific openocd binary path
-			"preLaunchTask": "Clean and Build - generic_stm32f103_bluepill - jlink"
+			//"preLaunchTask": "Clean and Build - generic_stm32f103_bluepill - jlink"
 		},
 		{
 			"name": "Debug STM32H5 (runner JLink via stm-openocd)",
