@@ -50,9 +50,10 @@ status_t ESC_Init(const struct device *pwm_dev,
             esc_out->flag = ESC_UINITIALIZED;
             return -1;
     }
-
-    esc_out->flag = ESC_INITIALIZED;
+    esc_out->instance.pwm_dev      = pwm_dev;
+    esc_out->instance.pwm_channel  = pwm_channel;
     esc_out->instance.instance_num = esc_instance_num;
+    esc_out->flag                  = ESC_INITIALIZED;
     esc_instance_num++;
 }       
 
@@ -70,10 +71,10 @@ status_t ESC_SetSpeed(esc_t *esc, uint8_t speed)
 
     ret = pwm_set(esc->instance.pwm_dev, 
                   esc->instance.pwm_channel,
-                  esc->period,
-                  dc_speed,
+                  PWM_USEC(esc->period),
+                  PWM_USEC(dc_speed),
                   0); //TODO: Check here if some flags should be considered..
     if (ret)
         //TODO: Check if printing some error log is needed
-        return -1;
+        for(;;);
 }
