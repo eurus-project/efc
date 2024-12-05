@@ -27,13 +27,18 @@
 #define DC_MIN_MULTISHOT_US   5
 #define DC_MAX_MULTISHOT_US   25
 
-
+//TODO: Check this!
 // ESC Protocol Period in us
-#define T_PWM_US 4000
+#define T_PWM_US      4000
+#define T_ONESHOT_125 500
+#define T_ONESHOT_42  168
+#define T_MULTISHOT   50
 
 /*********************************** Typedefs *********************************/
 typedef int status_t;
-
+typedef uint8_t esc_number_t;
+typedef uint32_t esc_period_t;
+typedef uint32_t esc_dc_min_t, esc_dc_max_t;
 
 typedef enum {
     ESC_PWM = 0,
@@ -42,13 +47,37 @@ typedef enum {
     ESC_MULTISHOT
 } esc_protocol_t;
 
+typedef enum {
+    ESC_UINITIALIZED = 0,
+    ESC_INITIALIZED
+} esc_init_flag_t;
 
+typedef struct {
+    esc_number_t instance_num;
+    const struct device *pwm_dev;
+    uint32_t pwm_channel; 
+} esc_instance_t;
 
+typedef struct {
+    esc_instance_t   instance;
+    esc_init_flag_t  flag;
+    esc_period_t     period;
+    esc_dc_min_t     dc_min;
+    esc_dc_max_t     dc_max;
+} esc_t;
 
 /********************************** Functions *********************************/
+status_t ESC_Init(const struct device *pwm_dev,
+                  uint32_t pwm_channel,
+                  esc_protocol_t protocol, 
+                  esc_t *esc_out);
 
 
-status_t ESC_Init(const struct device *pwm_dev, esc_protocol_t protocol);
+/* TODO: This function should call pwm_set API to set PWM beneath esc layer, but
+         to make this possible, channel should be passed as argument to pwm_set,
+         so how to make correlation with esc instance? */
+
+status_t ESC_SetSpeed(esc_t *esc, uint8_t speed);
 
 
 #endif
