@@ -23,6 +23,7 @@
 /* Enable PWM */
 &timers1 {
     status = "okay";
+    st,prescaler = <4>;
 
     pwm1: pwm {
         status = "okay";

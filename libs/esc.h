@@ -34,12 +34,17 @@
 #define T_ONESHOT_42  168
 #define T_MULTISHOT   50
 
+/*********************************** Macros ***********************************/
+
 /*********************************** Typedefs *********************************/
 typedef int status_t;
 typedef uint8_t esc_number_t;
 typedef uint32_t esc_period_t;
 typedef uint32_t esc_dc_min_t, esc_dc_max_t;
 
+/**
+ * @brief ESC Protocol type
+ */
 typedef enum {
     ESC_PWM = 0,
     ESC_ONESHOT_125,
@@ -47,17 +52,26 @@ typedef enum {
     ESC_MULTISHOT
 } esc_protocol_t;
 
+/**
+ * @brief ESC Initialization flag
+ */
 typedef enum {
-    ESC_UINITIALIZED = 0,
+    ESC_UNINITIALIZED = 0,
     ESC_INITIALIZED
 } esc_init_flag_t;
 
+/**
+ * @brief ESC Instance struct
+ */
 typedef struct {
     esc_number_t instance_num;
     const struct device *pwm_dev;
     uint32_t pwm_channel; 
 } esc_instance_t;
 
+/**
+ * @brief ESC configuration struct
+ */
 typedef struct {
     esc_instance_t   instance;
     esc_init_flag_t  flag;
@@ -67,16 +81,28 @@ typedef struct {
 } esc_t;
 
 /********************************** Functions *********************************/
+/**
+ * @brief ESC Initialization function
+ * @param[in] pwm_dev     Pointer to the device struct - pwm device
+ * @param[in] pwm_channel PWM channel which will be used by ESC device
+ * @param[in] protocol    ESC Protocol
+ * @param[out] esc_out    Pointer to the ESC out struct, it needs to be passed 
+ *                        to the ESC_SetSpeed function
+ * @retval ::status_t
+ */
 status_t ESC_Init(const struct device *pwm_dev,
                   uint32_t pwm_channel,
                   esc_protocol_t protocol, 
                   esc_t *esc_out);
 
 
-/* TODO: This function should call pwm_set API to set PWM beneath esc layer, but
-         to make this possible, channel should be passed as argument to pwm_set,
-         so how to make correlation with esc instance? */
-
+/**
+ * @brief ESC Set Speed by percentage from 0 to 100
+ * @param[in] esc   Pointer to the preinitialized ESC out struct from ESC_Init
+ * @param[in] speed ESC speed, in perentage
+ * 
+ * @retval ::status_t
+ */
 status_t ESC_SetSpeed(esc_t *esc, uint8_t speed);
 
 
