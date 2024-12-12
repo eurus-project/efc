@@ -74,14 +74,10 @@ static int process_imu(const struct device *dev) {
 /* 1000 msec = 1 sec */
 #define SLEEP_TIME_MS 1000
 
-/* The devicetree node identifier for the "led0" alias. */
-#define LED0_NODE DT_ALIAS(led0)
-
-/*
- * A build error on this line means your board is unsupported.
- * See the sample documentation for information on how to fix this.
- */
-static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+// This LED simply blinks at an interval, indicating visually that the firmware is running
+// If anything causes the whole firmware to abort, it will be apparent without looking at
+// log output or hooking up a debugger.
+static const struct gpio_dt_spec fw_running_led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
 struct fs_littlefs lfsfs;
 
@@ -120,13 +116,15 @@ int main(void) {
 #endif
     }
 
-    if (!gpio_is_ready_dt(&led)) {
+    if (!gpio_is_ready_dt(&fw_running_led)) {
+        LOG_ERR("The firmware running LED is not ready");
         return 0;
     }
 
     int ret;
-    ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+    ret = gpio_pin_configure_dt(&fw_running_led, GPIO_OUTPUT_ACTIVE);
     if (ret < 0) {
+        LOG_ERR("Could not configure the firmware running LED as output");
         return 0;
     }
 
@@ -185,16 +183,12 @@ int main(void) {
 
     LOG_INF("Boot count: %d\n", (int)boot_count);
 
-    bool led_state = true;
-
     while (1) {
-        ret = gpio_pin_toggle_dt(&led);
+        ret = gpio_pin_toggle_dt(&fw_running_led);
         if (ret < 0) {
+            LOG_ERR("Could not toggle the firmware running LED");
             return 0;
         }
-
-        led_state = !led_state;
-        printf("LED state: %s\n", led_state ? "ON" : "OFF");
 
         process_imu(main_imu);
 
