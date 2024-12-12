@@ -1,7 +1,7 @@
 /**
  * @file   esc.c
  * @brief  Zephyr Electronic Speed Controller ESC driver for BLDC motors
- * @author Eurus organization
+ * @author Eurus-project
  */
 
 /******************************** Includes ************************************/
@@ -99,6 +99,43 @@ status_t ESC_SetSpeed(esc_t *esc, uint8_t speed)
     }
 }
 
+status_t ESC_Stop(esc_t *esc)
+{
+    int ret;
+
+    if (esc->flag != ESC_INITIALIZED)
+    {
+        printk("[ESC]: Error: Uninitialized ESC cannot be stopped!");
+        return -1;
+    }
+
+    ret = pwm_set(esc->instance.pwm_dev,
+                  esc->instance.pwm_channel,
+                  0,
+                  0,
+                  0);
+    if (ret)
+    {
+        printk("[ESC]: Error: Selected PWM device cannot be stopped!\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+status_t ESC_DeInit(esc_t *esc)
+{
+    if (esc->flag != ESC_INITIALIZED)
+    {
+        printk("[ESC]: Error: Specified ESC is already deinitialized\n");
+        return -1;
+    }
+
+    ESC_Stop(esc);
+    esc->flag = ESC_UNINITIALIZED;
+
+    return 0;
+}
 
 /************************** Static Functions **********************************/
 static int prvESC_ChannelCheck(const struct device *pwm_dev, uint32_t pwm_channel)
@@ -116,4 +153,6 @@ static int prvESC_ChannelCheck(const struct device *pwm_dev, uint32_t pwm_channe
 
     return 0; // Channel exists
 }
+
+
 

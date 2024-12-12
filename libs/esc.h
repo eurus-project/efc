@@ -1,7 +1,7 @@
 /**
  * @file   esc.h
  * @brief  Zephyr Electronic Speed Controller ESC driver for BLDC motors
- * @author Eurus organization
+ * @author Eurus-project
  */
 
 #ifndef ESC_H
@@ -106,4 +106,20 @@ status_t ESC_Init(const struct device *pwm_dev,
 status_t ESC_SetSpeed(esc_t *esc, uint8_t speed);
 
 
+/**
+ * @brief ESC Stop - Stop ESC signal
+ * @param[in] esc Pointer to the preinitialized ESC out struct from ESC_Init
+ * 
+ * @retval ::status_t
+ */
+status_t ESC_Stop(esc_t *esc);
+
+
+/**
+ * @brief ESC Deinitialize device
+ * @param[in] esc Pointer to the preinitialized ESC out struct from ESC_Init
+ * 
+ * @retval ::status_t
+ */
+status_t ESC_DeInit(esc_t *esc);
 #endif

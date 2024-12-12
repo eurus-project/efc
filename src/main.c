@@ -18,14 +18,20 @@ int main(void)
         return;
     }
 
-    status = ESC_Init(pwm_dev, 1, ESC_PWM, &esc1);
+    status = ESC_Init(pwm_dev, 1, ESC_ONESHOT_125, &esc1);
     if (status < 0)
         return;
      
 
+    status = ESC_SetSpeed(&esc1, 0);
+
+    k_msleep(1000);
+
     status = ESC_SetSpeed(&esc1, 50);
 
+    k_msleep(1000);
 
+    status = ESC_SetSpeed(&esc1, 100);
     while (1)
     {
         /*
