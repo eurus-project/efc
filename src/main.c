@@ -10,9 +10,6 @@
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/usb/usbd.h>
 
-BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
-             "Console device is not ACM CDC UART device");
-
 LOG_MODULE_REGISTER(main);
 
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
@@ -111,15 +108,17 @@ static const char *disk_pdrv = CONFIG_SDMMC_VOLUME_NAME;
 char fname1[LFS_NAME_MAX];
 
 int main(void) {
+    if (DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)) {
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
-    if (enable_usb_device_next()) {
-        return 0;
-    }
+        if (enable_usb_device_next()) {
+            return 0;
+        }
 #else
-    if (usb_enable(NULL)) {
-        return 0;
-    }
+        if (usb_enable(NULL)) {
+            return 0;
+        }
 #endif
+    }
 
     if (!gpio_is_ready_dt(&led)) {
         return 0;
