@@ -71,37 +71,20 @@ static int process_imu(const struct device *dev) {
     return 0;
 }
 
-/* 1000 msec = 1 sec */
-#define SLEEP_TIME_MS 1000
-
 // This LED simply blinks at an interval, indicating visually that the firmware is running
 // If anything causes the whole firmware to abort, it will be apparent without looking at
 // log output or hooking up a debugger.
 static const struct gpio_dt_spec fw_running_led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
-struct fs_littlefs lfsfs;
+static struct fs_littlefs log_fs;
 
-static struct fs_mount_t __mp = {
+static struct fs_mount_t log_fs_mount = {
     .type = FS_LITTLEFS,
-    .fs_data = &lfsfs,
+    .fs_data = &log_fs,
     .flags = FS_MOUNT_FLAG_USE_DISK_ACCESS,
+    .storage_dev = "SD",
+    .mnt_point = "/SD:",
 };
-
-struct fs_mount_t *mountpoint = &__mp;
-
-#if defined(CONFIG_DISK_DRIVER_SDMMC)
-  #define CONFIG_SDMMC_VOLUME_NAME "SD"
-#elif defined(CONFIG_DISK_DRIVER_MMC)
-  #define CONFIG_SDMMC_VOLUME_NAME "SD2"
-#else
-  #error "No disk device defined, is your board supported?"
-#endif
-
-
-static const char *disk_mount_pt = "/" CONFIG_SDMMC_VOLUME_NAME ":";
-static const char *disk_pdrv = CONFIG_SDMMC_VOLUME_NAME;
-
-char fname1[LFS_NAME_MAX];
 
 int main(void) {
     if (DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)) {
@@ -135,22 +118,19 @@ int main(void) {
         return 0;
     }
 
-    mountpoint->storage_dev = (void *)disk_pdrv;
-    mountpoint->mnt_point = disk_mount_pt;
-
-    ret = fs_mount(mountpoint);
+    ret = fs_mount(&log_fs_mount);
     if (ret < 0) {
         LOG_ERR("Could not mount filesystem!\n");
         return 0;
     }
 
-    // read current count
     uint32_t boot_count = 0;
     struct fs_file_t file;
     fs_file_t_init(&file);
 
-    snprintf(fname1, sizeof(fname1), "%s/boot_count", mountpoint->mnt_point);
-    ret = fs_open(&file, fname1, FS_O_RDWR | FS_O_CREATE);
+    char filename[LFS_NAME_MAX];
+    snprintf(filename, sizeof(filename), "%s/boot_count", log_fs_mount.mnt_point);
+    ret = fs_open(&file, filename, FS_O_RDWR | FS_O_CREATE);
     if (ret < 0) {
         LOG_ERR("Could not open file!\n");
         return 0;
@@ -192,7 +172,7 @@ int main(void) {
 
         process_imu(main_imu);
 
-        k_msleep(SLEEP_TIME_MS);
+        k_msleep(1000);
     }
 
     return 0;
