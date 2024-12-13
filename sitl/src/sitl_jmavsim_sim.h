@@ -1,7 +1,7 @@
 #ifndef _SITL_JMAVSIM_SIM_H_
 #define _SITL_JMAVSIM_SIM_H_
 
-#include "sim/sitl_sim.h"
+#include "sitl_sim.h"
 
 // TODO: Include mavlink headers for:
 // mavlink_hil_sensor_t - RECV

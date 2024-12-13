@@ -18,8 +18,8 @@ endif()
 
 add_executable(sitl
     ${CMAKE_CURRENT_SOURCE_DIR}/src/sitl_main.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sim/sitl_sim.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sim/sitl_jmavsim_sim.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sitl_sim.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sitl_jmavsim_sim.cpp
 )
 
 target_include_directories(sitl PRIVATE

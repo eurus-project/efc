@@ -1,7 +1,7 @@
 #include <iostream>
 #include <memory>
 
-#include "sim/sitl_sim.h"
+#include "sitl_sim.h"
 
 int main() {
     std::cout << "This is SITL!\n";

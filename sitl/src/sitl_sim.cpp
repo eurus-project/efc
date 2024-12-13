@@ -1,6 +1,6 @@
 #include "sitl_sim.h"
 
-#include "sim/sitl_jmavsim_sim.h"
+#include "sitl_jmavsim_sim.h"
 
 namespace efc
 {
