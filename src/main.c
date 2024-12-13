@@ -1,3 +1,20 @@
+/*
+ * This file is part of the efc project <https://github.com/eurus-project/efc/>.
+ * Copyright (c) 2024 The efc developers.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
@@ -9,9 +26,6 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/usb/usbd.h>
-
-BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
-             "Console device is not ACM CDC UART device");
 
 LOG_MODULE_REGISTER(main);
 
@@ -39,8 +53,12 @@ static int process_imu(const struct device *dev) {
     struct sensor_value temperature;
     struct sensor_value accel[3];
     struct sensor_value gyro[3];
+    int ret = sensor_sample_fetch(dev);
+    if (ret < 0) {
+        LOG_ERR("Could not fetch data from IMU!");
+        return ret;
+    }
 
-    int ret;
     ret = sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, accel);
     if (ret < 0) {
         LOG_ERR("Could not get accelerometer data!");
@@ -70,70 +88,43 @@ static int process_imu(const struct device *dev) {
     return 0;
 }
 
-static struct sensor_trigger trigger;
+// This LED simply blinks at an interval, indicating visually that the firmware is running
+// If anything causes the whole firmware to abort, it will be apparent without looking at
+// log output or hooking up a debugger.
+static const struct gpio_dt_spec fw_running_led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
-static void handle_imu_data_ready(const struct device *dev,
-                                  const struct sensor_trigger *trig) {
-    int ret = sensor_sample_fetch(dev);
-    if (ret < 0) {
-        LOG_ERR("Could not fetch data from IMU!");
-    }
-}
+static struct fs_littlefs log_fs;
 
-/* 1000 msec = 1 sec */
-#define SLEEP_TIME_MS 1000
-
-/* The devicetree node identifier for the "led0" alias. */
-#define LED0_NODE DT_ALIAS(led0)
-
-/*
- * A build error on this line means your board is unsupported.
- * See the sample documentation for information on how to fix this.
- */
-static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
-
-struct fs_littlefs lfsfs;
-
-static struct fs_mount_t __mp = {
+static struct fs_mount_t log_fs_mount = {
     .type = FS_LITTLEFS,
-    .fs_data = &lfsfs,
+    .fs_data = &log_fs,
     .flags = FS_MOUNT_FLAG_USE_DISK_ACCESS,
+    .storage_dev = "SD",
+    .mnt_point = "/SD:",
 };
 
-struct fs_mount_t *mountpoint = &__mp;
-
-#if defined(CONFIG_DISK_DRIVER_SDMMC)
-  #define CONFIG_SDMMC_VOLUME_NAME "SD"
-#elif defined(CONFIG_DISK_DRIVER_MMC)
-  #define CONFIG_SDMMC_VOLUME_NAME "SD2"
-#else
-  #error "No disk device defined, is your board supported?"
-#endif
-
-
-static const char *disk_mount_pt = "/" CONFIG_SDMMC_VOLUME_NAME ":";
-static const char *disk_pdrv = CONFIG_SDMMC_VOLUME_NAME;
-
-char fname1[LFS_NAME_MAX];
-
 int main(void) {
+    if (DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)) {
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
-    if (enable_usb_device_next()) {
-        return 0;
-    }
+        if (enable_usb_device_next()) {
+            return 0;
+        }
 #else
-    if (usb_enable(NULL)) {
-        return 0;
-    }
+        if (usb_enable(NULL)) {
+            return 0;
+        }
 #endif
+    }
 
-    if (!gpio_is_ready_dt(&led)) {
+    if (!gpio_is_ready_dt(&fw_running_led)) {
+        LOG_ERR("The firmware running LED is not ready");
         return 0;
     }
 
     int ret;
-    ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+    ret = gpio_pin_configure_dt(&fw_running_led, GPIO_OUTPUT_ACTIVE);
     if (ret < 0) {
+        LOG_ERR("Could not configure the firmware running LED as output");
         return 0;
     }
 
@@ -144,34 +135,19 @@ int main(void) {
         return 0;
     }
 
-    trigger = (struct sensor_trigger){
-        .type = SENSOR_TRIG_DATA_READY,
-        .chan = SENSOR_CHAN_ALL,
-    };
-
-    if (sensor_trigger_set(main_imu, &trigger, handle_imu_data_ready) < 0) {
-        LOG_ERR("Cannot configure main IMU trigger\n");
-        return 0;
-    }
-
-    LOG_INF("Configured IMU for triggered sampling.\n");
-
-    mountpoint->storage_dev = (void *)disk_pdrv;
-    mountpoint->mnt_point = disk_mount_pt;
-
-    ret = fs_mount(mountpoint);
+    ret = fs_mount(&log_fs_mount);
     if (ret < 0) {
         LOG_ERR("Could not mount filesystem!\n");
         return 0;
     }
 
-    // read current count
     uint32_t boot_count = 0;
     struct fs_file_t file;
     fs_file_t_init(&file);
 
-    snprintf(fname1, sizeof(fname1), "%s/boot_count", mountpoint->mnt_point);
-    ret = fs_open(&file, fname1, FS_O_RDWR | FS_O_CREATE);
+    char filename[LFS_NAME_MAX];
+    snprintf(filename, sizeof(filename), "%s/boot_count", log_fs_mount.mnt_point);
+    ret = fs_open(&file, filename, FS_O_RDWR | FS_O_CREATE);
     if (ret < 0) {
         LOG_ERR("Could not open file!\n");
         return 0;
@@ -204,20 +180,16 @@ int main(void) {
 
     LOG_INF("Boot count: %d\n", (int)boot_count);
 
-    bool led_state = true;
-
     while (1) {
-        ret = gpio_pin_toggle_dt(&led);
+        ret = gpio_pin_toggle_dt(&fw_running_led);
         if (ret < 0) {
+            LOG_ERR("Could not toggle the firmware running LED");
             return 0;
         }
 
-        led_state = !led_state;
-        printf("LED state: %s\n", led_state ? "ON" : "OFF");
-
         process_imu(main_imu);
 
-        k_msleep(SLEEP_TIME_MS);
+        k_msleep(1000);
     }
 
     return 0;
