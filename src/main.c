@@ -2,6 +2,7 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/pwm.h>
 #include "esc.h"
+#include "stm32f1xx_hal_tim.h"
 
 
 
