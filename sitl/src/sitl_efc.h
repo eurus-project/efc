@@ -15,22 +15,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sitl_pch.h"
-#include "sitl_sim.h"
-
-#include "sitl_jmavsim_sim.h"
+#ifndef _SITL_DEF_H_
+#define _SITL_DEF_H_
 
 namespace efc
 {
 namespace sitl
 {
-    Simulator* Simulator::CreateSimulator()
-    {
-#if defined(GAZEBO)
-        return nullptr;
-#else
-        return new JMavSimSimulator();
+
+}
+}
+
 #endif
-    }
-}
-}
