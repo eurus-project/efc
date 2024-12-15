@@ -15,15 +15,20 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sitl_pch.h" // To be moved probably from main
-#include "sitl_sim.h"
+#ifndef _SITL_PCH_H_
+#define _SITL_PCH_H_
 
-int main() {
-    std::cout << "This is SITL!\n";
+// To be potentially reduced in the end
+#include <iostream>
+#include <memory>
+#include <utility>
+#include <algorithm>
+#include <functional>
+#include <string>
+#include <sstream>
+#include <array>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
 
-    std::unique_ptr<efc::sitl::Simulator>
-        Sim(efc::sitl::Simulator::CreateSimulator());
-
-    return 0;
-}
-
+#endif
