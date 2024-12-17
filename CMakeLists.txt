@@ -26,4 +26,48 @@ project(efc
 target_sources(app
 PRIVATE
     src/main.c
+    src/logging/ulog.c
+)
+
+target_include_directories(app
+PRIVATE
+    src/logging
+)
+
+# ULOG message source generation
+set(YAML_DIR ${CMAKE_SOURCE_DIR}/messages/ulog)
+set(GENERATED_DIR ${CMAKE_BINARY_DIR}/ulog/generated)
+set(GENERATOR_SCRIPT ${CMAKE_SOURCE_DIR}/tools/ulog_gen.py)
+set(VENV_PYTHON ${CMAKE_SOURCE_DIR}/python_venv/bin/python)
+
+file(MAKE_DIRECTORY ${GENERATED_DIR})
+
+file(GLOB YAML_FILES ${YAML_DIR}/*.yaml)
+
+set(GENERATED_SOURCES "")
+foreach(file ${YAML_FILES})
+    get_filename_component(filename ${file} NAME)
+    string(REPLACE ".yaml" ".c" generated_source ${filename})
+    string(PREPEND generated_source "ulog_")
+    string(PREPEND generated_source ${GENERATED_DIR}/)
+
+    add_custom_command(
+        OUTPUT ${generated_source}
+        COMMAND ${VENV_PYTHON} ${GENERATOR_SCRIPT} ${file} ${GENERATED_DIR}
+        DEPENDS ${file} ${GENERATOR_SCRIPT}
+        COMMENT "Generating C and H files from YAML definitions"
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+
+    list(APPEND GENERATED_SOURCES ${generated_source})
+endforeach()
+
+target_sources(app
+PRIVATE
+    ${GENERATED_SOURCES}
+)
+
+target_include_directories(app
+PRIVATE
+    ${GENERATED_DIR}
 )
