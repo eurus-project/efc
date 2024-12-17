@@ -105,3 +105,6 @@ Pylint.txt
 SphinxLint.txt
 TextEncoding.txt
 YAMLLint.txt
+
+# Python virtual environment
+python_venv/
