@@ -27,7 +27,29 @@
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/usb/usbd.h>
 
+#include "ulog.h"
+#include "ulog_gyro.h"
+
 LOG_MODULE_REGISTER(main);
+
+// This LED simply blinks at an interval, indicating visually that the firmware
+// is running If anything causes the whole firmware to abort, it will be
+// apparent without looking at log output or hooking up a debugger.
+static const struct gpio_dt_spec fw_running_led =
+    GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
+
+static struct fs_littlefs main_fs;
+
+static struct fs_mount_t main_fs_mount = {
+    .type = FS_LITTLEFS,
+    .fs_data = &main_fs,
+    .flags = FS_MOUNT_FLAG_USE_DISK_ACCESS,
+    .storage_dev = "SD",
+    .mnt_point = "/SD:",
+};
+
+static ULOG_Inst_Type ulog_log;
+static uint16_t gyro_msg_id = 0;
 
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
 static struct usbd_context *sample_usbd;
@@ -85,23 +107,17 @@ static int process_imu(const struct device *dev) {
         sensor_value_to_double(&gyro[0]), sensor_value_to_double(&gyro[1]),
         sensor_value_to_double(&gyro[2]));
 
+    ULOG_Gyro_Type gyro_msg = {
+        .timestamp = k_uptime_get() * 1000,
+        .x = sensor_value_to_float(&gyro[0]),
+        .y = sensor_value_to_float(&gyro[1]),
+        .z = sensor_value_to_float(&gyro[2]),
+    };
+
+    ULOG_Gyro_Write(&ulog_log, &gyro_msg, gyro_msg_id);
+
     return 0;
 }
-
-// This LED simply blinks at an interval, indicating visually that the firmware is running
-// If anything causes the whole firmware to abort, it will be apparent without looking at
-// log output or hooking up a debugger.
-static const struct gpio_dt_spec fw_running_led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
-
-static struct fs_littlefs log_fs;
-
-static struct fs_mount_t log_fs_mount = {
-    .type = FS_LITTLEFS,
-    .fs_data = &log_fs,
-    .flags = FS_MOUNT_FLAG_USE_DISK_ACCESS,
-    .storage_dev = "SD",
-    .mnt_point = "/SD:",
-};
 
 int main(void) {
     if (DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)) {
@@ -135,50 +151,86 @@ int main(void) {
         return 0;
     }
 
-    ret = fs_mount(&log_fs_mount);
+    ret = fs_mount(&main_fs_mount);
     if (ret < 0) {
         LOG_ERR("Could not mount filesystem!\n");
         return 0;
     }
 
     uint32_t boot_count = 0;
-    struct fs_file_t file;
-    fs_file_t_init(&file);
+    struct fs_file_t boot_count_file;
+    fs_file_t_init(&boot_count_file);
 
     char filename[LFS_NAME_MAX];
-    snprintf(filename, sizeof(filename), "%s/boot_count", log_fs_mount.mnt_point);
-    ret = fs_open(&file, filename, FS_O_RDWR | FS_O_CREATE);
+    snprintf(filename, sizeof(filename), "%s/boot_count",
+             main_fs_mount.mnt_point);
+    ret = fs_open(&boot_count_file, filename, FS_O_RDWR | FS_O_CREATE);
     if (ret < 0) {
         LOG_ERR("Could not open file!\n");
         return 0;
     }
 
-    ret = fs_read(&file, &boot_count, sizeof(boot_count));
+    ret = fs_read(&boot_count_file, &boot_count, sizeof(boot_count));
     if (ret < 0) {
         LOG_ERR("Could not read from file!\n");
         return 0;
     }
 
-    ret = fs_seek(&file, 0, FS_SEEK_SET);
+    ret = fs_seek(&boot_count_file, 0, FS_SEEK_SET);
     if (ret < 0) {
         LOG_ERR("Could not seek to beggining of the file!\n");
         return 0;
     }
 
     boot_count += 1;
-    ret = fs_write(&file, &boot_count, sizeof(boot_count));
+    ret = fs_write(&boot_count_file, &boot_count, sizeof(boot_count));
     if (ret < 0) {
         LOG_ERR("Could not write to file!\n");
         return 0;
     }
 
-    ret = fs_close(&file);
+    ret = fs_close(&boot_count_file);
     if (ret < 0) {
         LOG_ERR("Could not close file!\n");
         return 0;
     }
 
     LOG_INF("Boot count: %d\n", (int)boot_count);
+
+    memset(filename, 0, sizeof(filename));
+    snprintf(filename, sizeof(filename), "%s/log_%d.ulg",
+             main_fs_mount.mnt_point, (int)boot_count);
+    ULOG_Config_Type log_cfg = {
+        .filename = filename,
+    };
+
+    if (ULOG_Init(&ulog_log, &log_cfg) != ULOG_SUCCESS) {
+        LOG_ERR("Could not open log!");
+    }
+
+    if (ULOG_Gyro_RegisterFormat(&ulog_log) != ULOG_SUCCESS) {
+        LOG_ERR("Could not register ULOG gyro format!");
+    }
+
+    const char sys_name_key[] = "char[3] sys_name";
+    const char sys_name[] = "EFC";
+    if (ULOG_AddInfo(&ulog_log, sys_name_key, strlen(sys_name_key), sys_name,
+                     strlen(sys_name))) {
+        LOG_ERR("Could not system name info to the log!");
+    }
+
+    const char main_imu_name_key[] = "char[7] main_imu_name";
+    const char main_imu_name[] = "MPU6050";
+    if (ULOG_AddInfo(&ulog_log, main_imu_name_key, strlen(main_imu_name_key),
+                     main_imu_name, strlen(main_imu_name))) {
+        LOG_ERR("Could not main IMU info to the log!");
+    }
+
+    ULOG_StartDataPhase(&ulog_log);
+
+    if (ULOG_Gyro_Subscribe(&ulog_log, 0, &gyro_msg_id) != ULOG_SUCCESS) {
+        LOG_ERR("Could not start ULOG data phase!");
+    }
 
     while (1) {
         ret = gpio_pin_toggle_dt(&fw_running_led);
@@ -188,6 +240,8 @@ int main(void) {
         }
 
         process_imu(main_imu);
+
+        ULOG_Sync(&ulog_log);
 
         k_msleep(1000);
     }
