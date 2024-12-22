@@ -1,0 +1,67 @@
+name: build
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install required packages
+        run: |
+          sudo apt install --no-install-recommends -y git cmake ninja-build gperf \
+            ccache dfu-util device-tree-compiler wget \
+            python3-dev python3-pip python3-setuptools python3-tk python3-wheel xz-utils file \
+            make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1 python3-venv
+
+      - name: Create a virtual environment for Zephyr and intall west
+        run: |   
+          python3 -m venv $GITHUB_WORKSPACE/zephyrproject/.venv
+          source $GITHUB_WORKSPACE/zephyrproject/.venv/bin/activate
+          pip install west
+
+      - name: Get Zephyr source code
+        run: |
+          source $GITHUB_WORKSPACE/zephyrproject/.venv/bin/activate
+          west init -m https://github.com/eurus-project/zephyr $GITHUB_WORKSPACE/zephyrproject/
+
+      - name: Update Zephyr Workspace
+        run: |
+          source $GITHUB_WORKSPACE/zephyrproject/.venv/bin/activate
+          cd $GITHUB_WORKSPACE/zephyrproject/
+          west update
+          
+      - name: Export Zephyr CMake Package
+        run: |
+          source $GITHUB_WORKSPACE/zephyrproject/.venv/bin/activate
+          cd $GITHUB_WORKSPACE/zephyrproject/
+          west zephyr-export
+
+      - name: Install Python dependencies
+        run: |
+          source $GITHUB_WORKSPACE/zephyrproject/.venv/bin/activate
+          cd $GITHUB_WORKSPACE/zephyrproject/
+          west packages pip --install
+
+      - name: Install Zephyr SDK
+        run: |
+          source $GITHUB_WORKSPACE/zephyrproject/.venv/bin/activate
+          cd $GITHUB_WORKSPACE/zephyrproject/
+          west sdk install
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: zephyrproject/${{ github.repository }}
+
+      - name: Install project requirements
+        run: |
+          cd $GITHUB_WORKSPACE/zephyrproject/${{ github.repository }}
+          python3 -m venv python_venv
+          python_venv/bin/pip install -r requirements.txt
+
+      - name: Build project
+        run: |
+          source $GITHUB_WORKSPACE/zephyrproject/.venv/bin/activate
+          cd $GITHUB_WORKSPACE/zephyrproject/${{ github.repository }}
+          west build -b blackpill_f411ce
