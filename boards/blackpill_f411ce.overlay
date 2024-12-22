@@ -34,3 +34,13 @@
 		int-gpios = <&gpiob 7 GPIO_ACTIVE_HIGH>;
 	};
 };
+
+&timers1 {
+	status = "okay";
+
+	pwm1: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim1_ch1_pa8 &tim1_ch2_pa9 &tim1_ch3_pa10 &tim1_ch4_pa11>;
+		pinctrl-names = "default";
+	};
+};
