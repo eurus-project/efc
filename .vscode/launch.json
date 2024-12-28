@@ -40,6 +40,18 @@
 			//"preLaunchTask": "Clean and Build - generic_stm32f103_bluepill - stlink"
 		},
 		{
+			"name": "Debug STM32F4 (runner STLink-V2 via stm-openocd)",
+			"type": "cortex-debug",
+			"request": "launch",
+			"servertype": "openocd",
+			"configFiles": ["${workspaceFolder}/openocd_stm32f4_stlink.cfg"], // Place this cfg file in root workspace directory
+			"cwd": "${workspaceRoot}",
+			"executable": "${workspaceFolder}/build/zephyr/zephyr.elf",
+			"runToEntryPoint": "main",
+			"serverpath": "/home/filip/Programs/stm-openocd/bin/openocd", // Change this path to your specific openocd binary path
+			//"preLaunchTask": "Clean and Build - generic_stm32f103_bluepill - stlink"
+		},
+		{
 			"name": "Debug STM32H5 (runner STLink-V2 via stm-openocd)",
 			"type": "cortex-debug",
 			"request": "launch",

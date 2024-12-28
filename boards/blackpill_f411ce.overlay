@@ -37,6 +37,7 @@
 
 &timers1 {
 	status = "okay";
+	st,prescaler = <24>;
 
 	pwm1: pwm {
 		status = "okay";

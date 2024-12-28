@@ -8,6 +8,7 @@
 #include "esc.h"
 #include <stdlib.h>
 #include <stdint.h>
+#include <zephyr/kernel.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/devicetree/pinctrl.h>
@@ -97,6 +98,8 @@ status_t ESC_SetSpeed(esc_t *esc, uint8_t speed)
         value.");
         return -1;
     }
+
+    return 0;
 }
 
 status_t ESC_Stop(esc_t *esc)
@@ -137,21 +140,51 @@ status_t ESC_DeInit(esc_t *esc)
     return 0;
 }
 
+status_t ESC_Arm(esc_t *esc)
+{
+    int ret;
+
+    if (esc->flag != ESC_INITIALIZED)
+    {
+        printk("[ESC]: Error: Uninitialized ESC cannot be armed!\n");
+        return -1;
+    }
+
+    ret = ESC_SetSpeed(esc, 0);
+    if (ret)
+    {
+        printk("[ESC]: Error: Cannot set throttle, cannot arm ESC!\n");
+        ESC_Stop(esc);
+        return -1;
+    }
+    k_msleep(100); //NOTE: This delay is optional, maybe it's not needed
+
+    ret = ESC_SetSpeed(esc, ARM_THROTTLE);
+    if (ret)
+    {
+        printk("[ESC]: Error: Cannot set throttle, cannot arm ESC!\n");
+        ESC_Stop(esc);
+        return -1;
+    }
+    
+    k_msleep(ARM_DURATION);
+
+    ret = ESC_SetSpeed(esc, 0);
+    if (ret)
+    {
+        printk("[ESC]: Error: Cannot set throttle, cannot arm ESC!\n");
+        ESC_Stop(esc);
+        return -1;
+    }
+
+    return 0;
+}
+
+
 /************************** Static Functions **********************************/
 static int prvESC_ChannelCheck(const struct device *pwm_dev, uint32_t pwm_channel)
 {
-    if (!device_is_ready(pwm_dev)) {
-        printk("[ESC]: Error: PWM device is not ready.\n");
-        return -1;
-    }
-
-    // Check if the channel exists
-    if (!ESC_PWM_CHANNEL_EXISTS(pwm_dev, pwm_channel)) {
-        printk("[ESC]: Error: PWM channel %d does not exist for device %s.\n", pwm_channel, pwm_dev->name);
-        return -1;
-    }
-
-    return 0; // Channel exists
+    // TODO: Implement this in future!
 }
 
 

@@ -34,6 +34,10 @@
 #define T_ONESHOT_42  168
 #define T_MULTISHOT   50
 
+// ESC Arming 
+#define ARM_THROTTLE  8    //NOTE: Arm throttle is around 5-10 percent
+#define ARM_DURATION  3000 //NOTE: Arm duration is around 2000-5000 ms
+
 /*********************************** Macros ***********************************/
 
 /*********************************** Typedefs *********************************/
@@ -122,4 +126,12 @@ status_t ESC_Stop(esc_t *esc);
  * @retval ::status_t
  */
 status_t ESC_DeInit(esc_t *esc);
+
+/**
+ * @brief ESC Arming procedure
+ * @param[in] esc Pointer to the preinitialized ESC out struct from ESC_Init
+ * 
+ * @retval ::status_t
+ */
+status_t ESC_Arm(esc_t *esc);
 #endif
