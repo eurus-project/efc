@@ -225,10 +225,12 @@ int main(void) {
         LOG_ERR("Could not main IMU info to the log!");
     }
 
-    ULOG_StartDataPhase(&ulog_log);
+    if (ULOG_StartDataPhase(&ulog_log) != ULOG_SUCCESS) {
+        LOG_ERR("Could not start ULOG data phase!");
+    }
 
     if (ULOG_Gyro_Subscribe(&ulog_log, 0, &gyro_msg_id) != ULOG_SUCCESS) {
-        LOG_ERR("Could not start ULOG data phase!");
+        LOG_ERR("Could not subscribe ULOG log to gyro message!");
     }
 
     while (1) {

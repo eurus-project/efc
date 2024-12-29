@@ -121,8 +121,11 @@ ULOG_Error_Type ULOG_AddParameter(ULOG_Inst_Type *log, const char *key,
  * @brief Starts the log data phase
  *
  * @param log A pointer to the log instance
+ *
+ * @retval ULOG_SUCCESS - Operation finished successfully
+ * @retval ULOG_WRONG_PHASE - Log is not in the definitions phase
  */
-void ULOG_StartDataPhase(ULOG_Inst_Type *log);
+ULOG_Error_Type ULOG_StartDataPhase(ULOG_Inst_Type *log);
 
 /**
  * @brief Logs a string with a specified severity level
