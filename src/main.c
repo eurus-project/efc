@@ -101,14 +101,13 @@ static int process_imu(const struct device *dev) {
         LOG_WRN("Could not get IMU die temperature data!");
     }
 
-    printf(
-        "Temperature:%g Cel\n"
-        "Accelerometer: %f %f %f m/s/s\n"
-        "Gyroscope:  %f %f %f rad/s\n",
-        sensor_value_to_double(&temperature), sensor_value_to_double(&accel[0]),
-        sensor_value_to_double(&accel[1]), sensor_value_to_double(&accel[2]),
-        sensor_value_to_double(&gyro[0]), sensor_value_to_double(&gyro[1]),
-        sensor_value_to_double(&gyro[2]));
+    printf("Temperature:%g Cel\n"
+           "Accelerometer: %f %f %f m/s/s\n"
+           "Gyroscope:  %f %f %f rad/s\n",
+           sensor_value_to_double(&temperature),
+           sensor_value_to_double(&accel[0]), sensor_value_to_double(&accel[1]),
+           sensor_value_to_double(&accel[2]), sensor_value_to_double(&gyro[0]),
+           sensor_value_to_double(&gyro[1]), sensor_value_to_double(&gyro[2]));
 
     ULOG_Gyro_Type gyro_msg = {
         .timestamp = k_uptime_get() * 1000,
@@ -295,10 +294,12 @@ int main(void) {
         LOG_ERR("Could not write main baro info to the log!");
     }
 
-    ULOG_StartDataPhase(&ulog_log);
+    if (ULOG_StartDataPhase(&ulog_log) != ULOG_SUCCESS) {
+        LOG_ERR("Could not start ULOG data phase!");
+    }
 
     if (ULOG_Gyro_Subscribe(&ulog_log, 0, &gyro_msg_id) != ULOG_SUCCESS) {
-        LOG_ERR("Could not start ULOG data phase!");
+        LOG_ERR("Could not subscribe ULOG log to gyro message!");
     }
 
     if (ULOG_Baro_Subscribe(&ulog_log, 0, &baro_msg_id) != ULOG_SUCCESS) {
