@@ -35,14 +35,14 @@ typedef enum {
 } ULOG_Error_Type;
 
 typedef enum {
-    ULOG_LOG_LEVEL_EMERG = '0',    // System is unusable
-    ULOG_LOG_LEVEL_ALERT = '1',    // Action must be taken immediately
-    ULOG_LOG_LEVEL_CRIT = '2',     // Critical conditions
-    ULOG_LOG_LEVEL_ERR = '3',      // Error conditions
-    ULOG_LOG_LEVEL_WARNING = '4',  // Warning conditions
-    ULOG_LOG_LEVEL_NOTICE = '5',   // Normal but significant condition
-    ULOG_LOG_LEVEL_INFO = '6',     // Informational
-    ULOG_LOG_LEVEL_DEBUG = '7',    // Debug-level messages
+    ULOG_LOG_LEVEL_EMERG = '0',   // System is unusable
+    ULOG_LOG_LEVEL_ALERT = '1',   // Action must be taken immediately
+    ULOG_LOG_LEVEL_CRIT = '2',    // Critical conditions
+    ULOG_LOG_LEVEL_ERR = '3',     // Error conditions
+    ULOG_LOG_LEVEL_WARNING = '4', // Warning conditions
+    ULOG_LOG_LEVEL_NOTICE = '5',  // Normal but significant condition
+    ULOG_LOG_LEVEL_INFO = '6',    // Informational
+    ULOG_LOG_LEVEL_DEBUG = '7',   // Debug-level messages
 } ULOG_Log_Level_Type;
 
 typedef enum {

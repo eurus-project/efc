@@ -180,7 +180,7 @@ ULOG_Error_Type ULOG_AddParameter(ULOG_Inst_Type *log, const char *key,
     Message_Header_Type header = {
         .msg_type = 'P',
         .msg_size =
-            sizeof(uint8_t) + key_len + 4  // Size of either int32_t or float
+            sizeof(uint8_t) + key_len + 4 // Size of either int32_t or float
     };
 
     int ret = fs_write(&log->file, &header, sizeof(header));
@@ -296,7 +296,8 @@ ULOG_Error_Type ULOG_LogTaggedString(ULOG_Inst_Type *log, const char *string,
     return ULOG_SUCCESS;
 }
 
-ULOG_Error_Type ULOG_LogDropout(ULOG_Inst_Type *log, const uint16_t duration_ms) {
+ULOG_Error_Type ULOG_LogDropout(ULOG_Inst_Type *log,
+                                const uint16_t duration_ms) {
     if (log == NULL) {
         return ULOG_INVALID_PARAM;
     }
