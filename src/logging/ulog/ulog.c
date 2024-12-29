@@ -145,6 +145,10 @@ ULOG_Error_Type ULOG_AddInfo(ULOG_Inst_Type *log, const char *key,
         return ULOG_INVALID_PARAM;
     }
 
+    if (log->phase != ULOG_PHASE_DEFINITIONS) {
+        return ULOG_WRONG_PHASE;
+    }
+
     Message_Header_Type header = {
         .msg_type = 'I', .msg_size = sizeof(uint8_t) + key_len + val_len};
 
@@ -206,7 +210,15 @@ ULOG_Error_Type ULOG_AddParameter(ULOG_Inst_Type *log, const char *key,
     return ULOG_SUCCESS;
 }
 
-void ULOG_StartDataPhase(ULOG_Inst_Type *log) { log->phase = ULOG_PHASE_DATA; }
+ULOG_Error_Type ULOG_StartDataPhase(ULOG_Inst_Type *log) {
+    if (log->phase != ULOG_PHASE_DEFINITIONS) {
+        return ULOG_WRONG_PHASE;
+    }
+
+    log->phase = ULOG_PHASE_DATA;
+
+    return ULOG_SUCCESS;
+}
 
 ULOG_Error_Type ULOG_LogString(ULOG_Inst_Type *log, const char *string,
                                const size_t len,
