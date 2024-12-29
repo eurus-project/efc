@@ -1,0 +1,12 @@
+name: altitude
+description: Contains altitude estimation source, altitude and variance.
+fields:
+  - name: source
+    type: uint8_t
+    description: Estimation source
+  - name: altitude
+    type: float
+    description: Estimated altitude [m]
+  - name: variance
+    type: float
+    description: Variance [m]

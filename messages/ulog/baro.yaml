@@ -1,0 +1,9 @@
+name: baro
+description: Contains barometer temperature and pressure.
+fields:
+  - name: temperature
+    type: float
+    description: Temperature [degC]
+  - name: pressure
+    type: float
+    description: Pressure [kPa]
