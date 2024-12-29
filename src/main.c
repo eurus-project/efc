@@ -16,6 +16,7 @@
  */
 
 #include <stdio.h>
+#include <math.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/sensor.h>
@@ -29,6 +30,7 @@
 
 #include "ulog.h"
 #include "ulog_gyro.h"
+#include "ulog_baro.h"
 
 LOG_MODULE_REGISTER(main);
 
@@ -50,6 +52,7 @@ static struct fs_mount_t main_fs_mount = {
 
 static ULOG_Inst_Type ulog_log;
 static uint16_t gyro_msg_id = 0;
+static uint16_t baro_msg_id = 0;
 
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
 static struct usbd_context *sample_usbd;
@@ -118,6 +121,54 @@ static int process_imu(const struct device *dev) {
     return 0;
 }
 
+static int process_baro(const struct device *dev) {
+    struct sensor_value temp;
+    struct sensor_value press;
+
+    float temp_f;
+    float press_f;
+    float alt_f;
+
+    int ret = sensor_sample_fetch(dev);
+    if (ret < 0) {
+        LOG_ERR("Could not fetch data from barometer!");
+        return ret;
+    }
+
+    ret = sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+    if (ret < 0) {
+        LOG_ERR("Could not get barometer temperature data!");
+        return ret;
+    }
+
+    ret = sensor_channel_get(dev, SENSOR_CHAN_PRESS, &press);
+    if (ret < 0) {
+        LOG_ERR("Could not get barometer pressure data!");
+        return ret;
+    }
+
+    temp_f = sensor_value_to_float(&temp);
+    press_f = sensor_value_to_float(&press);
+    alt_f = 44330.0f * (1.0f - powf((press_f/101.325f), 1.0f/5.255f));
+
+    printf(
+        "Baro Temperature: %g Cel\n"
+        "Pressure: %f kPa\n"
+        "Altitude:  %f m\n",
+        (double)temp_f, (double)press_f, (double)alt_f);
+
+    ULOG_Baro_Type baro_msg = {
+        .timestamp = k_uptime_get() * 1000,
+        .temp = temp_f,
+        .press = press_f,
+        .alt = alt_f,
+    };
+
+    ULOG_Baro_Write(&ulog_log, &baro_msg, baro_msg_id);
+
+    return 0;
+}
+
 int main(void) {
     if (DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)) {
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
@@ -147,6 +198,13 @@ int main(void) {
 
     if (!device_is_ready(main_imu)) {
         LOG_ERR("Device %s is not ready\n", main_imu->name);
+        return 0;
+    }
+
+    const struct device *const main_baro = DEVICE_DT_GET_ANY(bosch_bme280);
+
+    if (!device_is_ready(main_baro)) {
+        printk("Device %s is not ready\n", main_baro->name);
         return 0;
     }
 
@@ -211,6 +269,10 @@ int main(void) {
         LOG_ERR("Could not register ULOG gyro format!");
     }
 
+    if (ULOG_Baro_RegisterFormat(&ulog_log) != ULOG_SUCCESS) {
+        LOG_ERR("Could not register ULOG baro format!");
+    }
+
     const char sys_name_key[] = "char[3] sys_name";
     const char sys_name[] = "EFC";
     if (ULOG_AddInfo(&ulog_log, sys_name_key, strlen(sys_name_key), sys_name,
@@ -225,12 +287,23 @@ int main(void) {
         LOG_ERR("Could not main IMU info to the log!");
     }
 
+    const char main_baro_name_key[] = "char[6] main_baro_name";
+    const char main_baro_name[] = "BMP280";
+    if (ULOG_AddInfo(&ulog_log, main_baro_name_key, strlen(main_baro_name_key),
+                     main_baro_name, strlen(main_baro_name))) {
+        LOG_ERR("Could not write main baro info to the log!");
+    }
+
     if (ULOG_StartDataPhase(&ulog_log) != ULOG_SUCCESS) {
         LOG_ERR("Could not start ULOG data phase!");
     }
 
     if (ULOG_Gyro_Subscribe(&ulog_log, 0, &gyro_msg_id) != ULOG_SUCCESS) {
         LOG_ERR("Could not subscribe ULOG log to gyro message!");
+    }
+
+    if (ULOG_Baro_Subscribe(&ulog_log, 0, &baro_msg_id) != ULOG_SUCCESS) {
+        LOG_ERR("Could not subscribe ULog baro message!");
     }
 
     while (1) {
@@ -241,6 +314,8 @@ int main(void) {
         }
 
         process_imu(main_imu);
+
+        process_baro(main_baro);
 
         ULOG_Sync(&ulog_log);
 

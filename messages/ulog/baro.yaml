@@ -1,0 +1,9 @@
+name: baro
+description: Contains barometer temperature, pressure and altitude
+fields:
+  - name: temp
+    type: float
+  - name: press
+    type: float
+  - name: alt
+    type: float
