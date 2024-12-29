@@ -18,3 +18,13 @@ pip install -r requirements.txt
 ```bash
 west build -b blackpill_f411ce
 ```
+
+
+## Contributing
+
+The `efc` project uses code formatting rules described in `.clang-format`.
+To ensure automatic code formatting, use [pre-commit](https://pre-commit.com/) and install hooks:
+
+```bash
+pre-commit install
+```
