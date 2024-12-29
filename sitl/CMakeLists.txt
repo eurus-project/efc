@@ -33,27 +33,53 @@ else()
     message(STATUS "=====================================")
 endif()
 
-# Change this possibly
-if(NOT DEFINED MAVLINK_DIR)
-    set(MAVLINK_DIR ".")
+set(SITL_MAIN_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/main)
+set(SITL_CORE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/core)
+set(SITL_SIM_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/sim)
+
+set(SITL_MAIN_SRC
+    ${SITL_MAIN_SRC_DIR}/sitl_main.cpp
+)
+
+set(SITL_CORE_SRC
+    ${SITL_CORE_SRC_DIR}/sitl_sim.cpp
+    ${SITL_CORE_SRC_DIR}/sitl_efc.cpp
+    ${SITL_CORE_SRC_DIR}/sitl_tcp_conn.cpp
+)
+
+set(SITL_SIM_SRC
+    ${SITL_SIM_SRC_DIR}/sitl_jmavsim_sim.cpp
+)
+
+if(LINUX) 
+    set(SITL_PLATFORM_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/linux)
+    set(SITL_PLATFORM_SRC
+        ${SITL_PLATFORM_SRC_DIR}/sitl_tcp_conn_linux.cpp
+    )
+elseif(WIN32)
+    set(SITL_PLATFORM_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/windows)
+    set(SITL_PLATFORM_SRC
+        ${SITL_PLATFORM_SRC_DIR}/sitl_tcp_conn_win.cpp
+    )
 else()
-    string(FIND ${MAVLINK_DIR} "/" PREFIX_POS)
-    if(PREFIX_POS EQUAL 0)
-        message(WARNING "Path to mavlink directory must be relative to Sitl root directory!")
-    endif()
+    message(ERROR "Unsupported platform!")
 endif()
 
+
+
 add_executable(sitl
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sitl_main.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sitl_sim.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sitl_jmavsim_sim.cpp
+    ${SITL_MAIN_SRC}
+    ${SITL_CORE_SRC}
+    ${SITL_SIM_SRC}
+    ${SITL_PLATFORM_SRC}
 )
 
 target_include_directories(sitl PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/${MAVLINK_DIR}
+    ${SITL_CORE_SRC_DIR}
+    ${SITL_SIM_SRC_DIR}
+    ${SITL_PLATFORM_SRC_DIR}
 )
 
 target_precompile_headers(sitl PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sitl_pch.h
+    ${SITL_CORE_SRC_DIR}/sitl_pch.h
 )

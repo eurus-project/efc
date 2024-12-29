@@ -22,7 +22,17 @@ namespace efc
 {
 namespace sitl
 {
-    
+    class TcpConnection
+    {
+    public:
+        TcpConnection() { std::cout << "TcpConnection created.\n"; }
+        virtual ~TcpConnection() { { std::cout << "TcpConnection destroyed.\n"; } }
+
+        static TcpConnection* CreateTcpConnection();
+
+    private:
+
+    };
 }
 }
 
