@@ -15,6 +15,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <zephyr/dt-bindings/sensor/icm42688.h> 
+
 / {
 	chosen {
 		zephyr,console = &cdc_acm_uart;
@@ -49,20 +51,12 @@
     pinctrl-names = "default";
     cs-gpios = <&gpiob 12 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
-	icm42688p {
-		compatible = "invensense,icm42688p";
+	imu_icm42688: icm42688@0 {
+		compatible = "invensense,icm42688";
 		reg = <0>;
+		status = "okay";
 		label = "ICM42688P";
 		spi-max-frequency = <1000000>;
-		int1-gpios = <&gpiob 11 GPIO_ACTIVE_HIGH>;
 	};
 };
 
-&i2c1 {
-	main_imu: mpu6050@68 {
-		compatible = "invensense,mpu6050";
-		reg = <0x68>;
-		status = "okay";
-		int-gpios = <&gpiob 7 GPIO_ACTIVE_HIGH>;
-	};
-};
