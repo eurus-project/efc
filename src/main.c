@@ -15,7 +15,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
 #include <stdio.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
@@ -29,15 +28,8 @@
 #include <zephyr/usb/usbd.h>
 
 #include "ulog.h"
-#include "ulog_altitude.h"
-#include "ulog_baro.h"
+#include "ulog_accel.h"
 #include "ulog_gyro.h"
-
-#define ALTITUDE_SOURCE_TYPE_BARO 1
-
-// Value derrived from BMP280 datasheet (page 15 of 49) for the given sensor
-// configuration.
-#define BMP280_ALTITUDE_VARIANCE_M .017f
 
 LOG_MODULE_REGISTER(main);
 
@@ -59,8 +51,7 @@ static struct fs_mount_t main_fs_mount = {
 
 static ULOG_Inst_Type ulog_log;
 static uint16_t gyro_msg_id = 0;
-static uint16_t baro_msg_id = 0;
-static uint16_t baro_alt_msg_id = 0;
+static uint16_t accel_msg_id = 0;
 
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
 static struct usbd_context *sample_usbd;
@@ -86,6 +77,8 @@ static int process_imu(const struct device *dev) {
     struct sensor_value temperature;
     struct sensor_value accel[3];
     struct sensor_value gyro[3];
+    uint64_t currentTime;
+
     int ret = sensor_sample_fetch(dev);
     if (ret < 0) {
         LOG_ERR("Could not fetch data from IMU!");
@@ -117,68 +110,24 @@ static int process_imu(const struct device *dev) {
            sensor_value_to_double(&accel[2]), sensor_value_to_double(&gyro[0]),
            sensor_value_to_double(&gyro[1]), sensor_value_to_double(&gyro[2]));
 
+    currentTime = k_uptime_get() * 1000;
+
     ULOG_Gyro_Type gyro_msg = {
-        .timestamp = k_uptime_get() * 1000,
+        .timestamp = currentTime,
         .x = sensor_value_to_float(&gyro[0]),
         .y = sensor_value_to_float(&gyro[1]),
         .z = sensor_value_to_float(&gyro[2]),
     };
 
-    ULOG_Gyro_Write(&ulog_log, &gyro_msg, gyro_msg_id);
-
-    return 0;
-}
-
-static int process_baro(const struct device *dev) {
-    struct sensor_value baro_temp;
-    struct sensor_value baro_press;
-
-    float temperature;
-    float pressure;
-    float altitude;
-
-    int ret = sensor_sample_fetch(dev);
-    if (ret < 0) {
-        LOG_ERR("Could not fetch data from barometer!");
-        return ret;
-    }
-
-    ret = sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &baro_temp);
-    if (ret < 0) {
-        LOG_ERR("Could not get barometer temperature data!");
-        return ret;
-    }
-
-    ret = sensor_channel_get(dev, SENSOR_CHAN_PRESS, &baro_press);
-    if (ret < 0) {
-        LOG_ERR("Could not get barometer pressure data!");
-        return ret;
-    }
-
-    temperature = sensor_value_to_float(&baro_temp);
-    pressure = sensor_value_to_float(&baro_press);
-
-    ULOG_Baro_Type baro_msg = {
-        .timestamp = k_uptime_get() * 1000,
-        .temperature = temperature,
-        .pressure = pressure,
+    ULOG_Accel_Type accel_msg = {
+        .timestamp = currentTime,
+        .x = sensor_value_to_float(&accel[0]),
+        .y = sensor_value_to_float(&accel[1]),
+        .z = sensor_value_to_float(&accel[2]),
     };
 
-    ULOG_Baro_Write(&ulog_log, &baro_msg, baro_msg_id);
-
-    altitude = 44330.0f * (1.0f - powf((pressure / 101.325f), 1.0f / 5.255f));
-
-    ULOG_Altitude_Type altitude_msg = {.timestamp = k_uptime_get() * 1000,
-                                       .source = ALTITUDE_SOURCE_TYPE_BARO,
-                                       .altitude = altitude,
-                                       .variance = BMP280_ALTITUDE_VARIANCE_M};
-
-    ULOG_Altitude_Write(&ulog_log, &altitude_msg, baro_alt_msg_id);
-
-    printf("Baro Temperature: %g degC\n"
-           "Pressure: %f kPa\n"
-           "Altitude:  %f m\n",
-           (double)temperature, (double)pressure, (double)altitude);
+    ULOG_Gyro_Write(&ulog_log, &gyro_msg, gyro_msg_id);
+    ULOG_Accel_Write(&ulog_log, &accel_msg, accel_msg_id);
 
     return 0;
 }
@@ -212,13 +161,6 @@ int main(void) {
 
     if (!device_is_ready(main_imu)) {
         LOG_ERR("Device %s is not ready\n", main_imu->name);
-        return 0;
-    }
-
-    const struct device *const main_baro = DEVICE_DT_GET_ANY(bosch_bme280);
-
-    if (!device_is_ready(main_baro)) {
-        printk("Device %s is not ready\n", main_baro->name);
         return 0;
     }
 
@@ -283,19 +225,8 @@ int main(void) {
         LOG_ERR("Could not register ULOG gyro format!");
     }
 
-    if (ULOG_Baro_RegisterFormat(&ulog_log) != ULOG_SUCCESS) {
-        LOG_ERR("Could not register ULOG baro format!");
-    }
-
-    if (ULOG_Altitude_RegisterFormat(&ulog_log) != ULOG_SUCCESS) {
-        LOG_ERR("Could not register ULOG altitude format!");
-    }
-
-    const char alt_src_type_baro_key[] = "int32_t ALTITUDE_SOURCE_TYPE_BARO";
-    const int32_t alt_src_type_baro = ALTITUDE_SOURCE_TYPE_BARO;
-    if (ULOG_AddParameter(&ulog_log, alt_src_type_baro_key,
-                          strlen(alt_src_type_baro_key), &alt_src_type_baro)) {
-        LOG_ERR("Could not write Altitude Source Type Baro parameter!");
+    if (ULOG_Accel_RegisterFormat(&ulog_log) != ULOG_SUCCESS) {
+        LOG_ERR("Could not register ULOG accel format!");
     }
 
     const char sys_name_key[] = "char[3] sys_name";
@@ -312,13 +243,6 @@ int main(void) {
         LOG_ERR("Could not main IMU info to the log!");
     }
 
-    const char main_baro_name_key[] = "char[6] main_baro_name";
-    const char main_baro_name[] = "BMP280";
-    if (ULOG_AddInfo(&ulog_log, main_baro_name_key, strlen(main_baro_name_key),
-                     main_baro_name, strlen(main_baro_name))) {
-        LOG_ERR("Could not write main baro info to the log!");
-    }
-
     if (ULOG_StartDataPhase(&ulog_log) != ULOG_SUCCESS) {
         LOG_ERR("Could not start ULOG data phase!");
     }
@@ -327,13 +251,8 @@ int main(void) {
         LOG_ERR("Could not subscribe ULOG log to gyro message!");
     }
 
-    if (ULOG_Baro_Subscribe(&ulog_log, 0, &baro_msg_id) != ULOG_SUCCESS) {
-        LOG_ERR("Could not subscribe ULog baro message!");
-    }
-
-    if (ULOG_Altitude_Subscribe(&ulog_log, 0, &baro_alt_msg_id) !=
-        ULOG_SUCCESS) {
-        LOG_ERR("Could not subscribe ULog altitude message!");
+    if (ULOG_Accel_Subscribe(&ulog_log, 0, &accel_msg_id) != ULOG_SUCCESS) {
+        LOG_ERR("Could not subscribe ULOG log to accel message!");
     }
 
     while (1) {
@@ -344,8 +263,6 @@ int main(void) {
         }
 
         process_imu(main_imu);
-
-        process_baro(main_baro);
 
         ULOG_Sync(&ulog_log);
 
