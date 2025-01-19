@@ -1,0 +1,32 @@
+name: pre-commit-checks
+
+on: 
+  push:
+  
+jobs:
+  formatting-check:
+    name: format check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install requirements
+        run: |
+          sudo apt install --no-install-recommends -y git python3-venv
+
+      - name: Install pre-commit
+        run: |   
+          pip install pre-commit
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: ${{ github.repository }}
+
+      - name: Run pre-commit
+        run: |
+          cd $GITHUB_WORKSPACE/${{ github.repository }}
+          git fetch origin
+          pre-commit run --from-ref origin/master --to-ref HEAD --show-diff-on-failure
+
+      
+
+      
