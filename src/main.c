@@ -23,6 +23,7 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/fs/littlefs.h>
+#include <zephyr/input/input.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/usb/usb_device.h>
@@ -61,6 +62,14 @@ static ULOG_Inst_Type ulog_log;
 static uint16_t gyro_msg_id = 0;
 static uint16_t baro_msg_id = 0;
 static uint16_t baro_alt_msg_id = 0;
+
+static const struct device *const sbus_dev =
+    DEVICE_DT_GET(DT_CHOSEN(futaba_sbus));
+static struct k_sem sbus_sync;
+static int32_t sbus_throttle;
+static int32_t sbus_pitch_rate;
+static int32_t sbus_roll_rate;
+static int32_t sbus_yaw_rate;
 
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
 static struct usbd_context *sample_usbd;
@@ -182,6 +191,50 @@ static int process_baro(const struct device *dev) {
 
     return 0;
 }
+
+static void sbus_event_callback(struct input_event *evt, void *user_data) {
+    switch (evt->code) {
+    case INPUT_ABS_RX:
+        sbus_roll_rate = evt->value;
+        break;
+    case INPUT_ABS_RY:
+        sbus_pitch_rate = evt->value;
+        break;
+    case INPUT_ABS_THROTTLE:
+        sbus_throttle = evt->value;
+        break;
+    case INPUT_ABS_RZ:
+        sbus_yaw_rate = evt->value;
+        break;
+    default:
+        break;
+    }
+
+    if (evt->sync) {
+        k_sem_give(&sbus_sync);
+    }
+}
+
+INPUT_CALLBACK_DEFINE(sbus_dev, sbus_event_callback, NULL);
+
+void sbus_thread(void *, void *, void *) {
+    k_sem_init(&sbus_sync, 0, 1);
+
+    if (!device_is_ready(sbus_dev)) {
+        LOG_ERR("Device %s not found. Aborting!.", sbus_dev->name);
+        return;
+    }
+
+    while (1) {
+        k_sem_take(&sbus_sync, K_FOREVER);
+
+        printf("Received SBUS data:\n"
+               "THR: %d, PITCH_RATE: %d, ROLL_RATE: %d, YAW_RATE: %d\n",
+               sbus_throttle, sbus_pitch_rate, sbus_roll_rate, sbus_yaw_rate);
+    }
+}
+
+K_THREAD_DEFINE(sbus_tid, 512, sbus_thread, NULL, NULL, NULL, 1, 0, 0);
 
 int main(void) {
     if (DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)) {
