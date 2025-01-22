@@ -1,9 +1,12 @@
 name: gyro
-description: Contains gyroscope data in yaw, pitch, roll format
+description: Contains gyroscope data in yaw, pitch and roll format
 fields:
   - name: x
     type: float
+    description: Angular velocity on x axis [rad/s]
   - name: y
     type: float
+    description: Angular velocity on y axis [rad/s]
   - name: z
     type: float
+    description: Angular velocity on z axis [rad/s]

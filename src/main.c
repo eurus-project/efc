@@ -29,6 +29,7 @@
 #include <zephyr/usb/usbd.h>
 
 #include "ulog.h"
+#include "ulog_accel.h"
 #include "ulog_altitude.h"
 #include "ulog_baro.h"
 #include "ulog_gyro.h"
@@ -59,6 +60,7 @@ static struct fs_mount_t main_fs_mount = {
 
 static ULOG_Inst_Type ulog_log;
 static uint16_t gyro_msg_id = 0;
+static uint16_t accel_msg_id = 0;
 static uint16_t baro_msg_id = 0;
 static uint16_t baro_alt_msg_id = 0;
 
@@ -86,6 +88,7 @@ static int process_imu(const struct device *dev) {
     struct sensor_value temperature;
     struct sensor_value accel[3];
     struct sensor_value gyro[3];
+
     int ret = sensor_sample_fetch(dev);
     if (ret < 0) {
         LOG_ERR("Could not fetch data from IMU!");
@@ -117,14 +120,24 @@ static int process_imu(const struct device *dev) {
            sensor_value_to_double(&accel[2]), sensor_value_to_double(&gyro[0]),
            sensor_value_to_double(&gyro[1]), sensor_value_to_double(&gyro[2]));
 
+    const int64_t current_time_ms = k_uptime_get() * 1000;
+
     ULOG_Gyro_Type gyro_msg = {
-        .timestamp = k_uptime_get() * 1000,
+        .timestamp = current_time_ms,
         .x = sensor_value_to_float(&gyro[0]),
         .y = sensor_value_to_float(&gyro[1]),
         .z = sensor_value_to_float(&gyro[2]),
     };
 
+    ULOG_Accel_Type accel_msg = {
+        .timestamp = current_time_ms,
+        .x = sensor_value_to_float(&accel[0]),
+        .y = sensor_value_to_float(&accel[1]),
+        .z = sensor_value_to_float(&accel[2]),
+    };
+
     ULOG_Gyro_Write(&ulog_log, &gyro_msg, gyro_msg_id);
+    ULOG_Accel_Write(&ulog_log, &accel_msg, accel_msg_id);
 
     return 0;
 }
@@ -283,6 +296,10 @@ int main(void) {
         LOG_ERR("Could not register ULOG gyro format!");
     }
 
+    if (ULOG_Accel_RegisterFormat(&ulog_log) != ULOG_SUCCESS) {
+        LOG_ERR("Could not register ULOG accel format!");
+    }
+
     if (ULOG_Baro_RegisterFormat(&ulog_log) != ULOG_SUCCESS) {
         LOG_ERR("Could not register ULOG baro format!");
     }
@@ -325,6 +342,10 @@ int main(void) {
 
     if (ULOG_Gyro_Subscribe(&ulog_log, 0, &gyro_msg_id) != ULOG_SUCCESS) {
         LOG_ERR("Could not subscribe ULOG log to gyro message!");
+    }
+
+    if (ULOG_Accel_Subscribe(&ulog_log, 0, &accel_msg_id) != ULOG_SUCCESS) {
+        LOG_ERR("Could not subscribe ULOG log to accel message!");
     }
 
     if (ULOG_Baro_Subscribe(&ulog_log, 0, &baro_msg_id) != ULOG_SUCCESS) {

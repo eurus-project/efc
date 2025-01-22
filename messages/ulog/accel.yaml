@@ -1,0 +1,12 @@
+name: accel
+description: Contains accelerometer data in yaw, pitch and roll format
+fields:
+  - name: x
+    type: float
+    description: Acceleration on x axis [m/s2]
+  - name: y
+    type: float
+    description: Acceleration on y axis [m/s2]
+  - name: z
+    type: float
+    description: Acceleration on z axis [m/s2]

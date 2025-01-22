@@ -1,0 +1,12 @@
+name: mag
+description: Contains magnetometer data in yaw, pitch and roll format
+fields:
+  - name: x
+    type: float
+    description: Magnetic induction on x axis [G]
+  - name: y
+    type: float
+    description: Magnetic induction on y axis [G]
+  - name: z
+    type: float
+    description: Magnetic induction on z axis [G]
