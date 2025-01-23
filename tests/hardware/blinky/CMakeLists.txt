@@ -17,28 +17,8 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 
-find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(efc
-    VERSION 0.1
-    LANGUAGES C
+message("Got into blinky")
+target_sources(app
+PRIVATE
+main.c
 )
-
-
-if(NOT DEFINED EFC_TEST_NAME)
-
-    add_subdirectory(src/logging/ulog)
-
-    target_sources(app
-    PRIVATE
-    src/main.c
-    )
-
-    target_link_libraries(app
-    PRIVATE
-        ulog
-    )
-
-else()
-    file(GLOB_RECURSE FOUND_TEST_DIR LIST_DIRECTORIES true ${CMAKE_SOURCE_DIR}/tests/*/${EFC_TEST_NAME})
-    add_subdirectory(${FOUND_TEST_DIR}/)
-endif()
