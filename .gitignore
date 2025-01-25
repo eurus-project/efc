@@ -108,3 +108,7 @@ YAMLLint.txt
 
 # Python virtual environment
 python_venv/
+
+# CMake Cache
+CMakeCache.txt
+CMakeFiles
