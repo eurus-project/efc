@@ -16,20 +16,25 @@ jobs:
             make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1 python3-venv
 
       - name: Create a virtual environment for Zephyr and intall west
-        run: |   
+        run: |
           python3 -m venv $GITHUB_WORKSPACE/zephyrproject/.venv
           $GITHUB_WORKSPACE/zephyrproject/.venv/bin/pip install west
 
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          path: zephyrproject/${{ github.event.repository.name }}
+
       - name: Get Zephyr source code
         run: |
-          $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west init -m https://github.com/eurus-project/zephyr \
-            $GITHUB_WORKSPACE/zephyrproject/
+          $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west init -l $GITHUB_WORKSPACE/zephyrproject/${{ github.event.repository.name }}/
 
       - name: Update Zephyr Workspace
         run: |
           cd $GITHUB_WORKSPACE/zephyrproject/
           $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west update
-          
+
       - name: Export Zephyr CMake Package
         run: |
           cd $GITHUB_WORKSPACE/zephyrproject/
@@ -45,19 +50,13 @@ jobs:
           cd $GITHUB_WORKSPACE/zephyrproject/
           $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west sdk install
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          path: zephyrproject/${{ github.repository }}
-
       - name: Install project requirements
         run: |
-          cd $GITHUB_WORKSPACE/zephyrproject/${{ github.repository }}
+          cd $GITHUB_WORKSPACE/zephyrproject/${{ github.event.repository.name }}
           python3 -m venv python_venv
           python_venv/bin/pip install -r requirements.txt
 
       - name: Build project
         run: |
-          cd $GITHUB_WORKSPACE/zephyrproject/${{ github.repository }}
-          $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west build -b blackpill_f411ce
+          cd $GITHUB_WORKSPACE/zephyrproject/${{ github.event.repository.name }}
+          $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west build -b blackpill_f411ce app

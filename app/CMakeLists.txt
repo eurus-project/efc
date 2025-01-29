@@ -17,12 +17,20 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 
-set(EFC_SOURCE_DIR ${CMAKE_SOURCE_DIR}/../)
-if(CMAKE_HOST_WIN32)
-	set(VENV_PYTHON ${EFC_SOURCE_DIR}/python_venv/Scripts/python)
-else()
-	set(VENV_PYTHON ${EFC_SOURCE_DIR}/python_venv/bin/python)
-endif()
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(efc
+    VERSION 0.1
+    LANGUAGES C
+)
 
+target_sources(app
+PRIVATE
+    src/main.c
+    src/telemetry_sender.c
+)
 
-add_subdirectory(libs)
+target_link_libraries(app
+PRIVATE
+    ulog
+    mavlink
+)

@@ -1,0 +1,11 @@
+manifest:
+  remotes:
+    - name: eurus-project
+      url-base: https://github.com/eurus-project
+  projects:
+    - name: zephyr
+      remote: eurus-project
+      revision: main
+      import: true
+  self:
+    path: efc
