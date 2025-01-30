@@ -108,3 +108,6 @@ YAMLLint.txt
 
 # Python virtual environment
 python_venv/
+
+# Exclude openocd configuration files
+openocd_*.cfg
