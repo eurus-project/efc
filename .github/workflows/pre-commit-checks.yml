@@ -6,10 +6,11 @@ on:
 jobs:
   formatting-check:
     name: format check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Install requirements
         run: |
+          sudo apt update && sudo apt upgrade
           sudo apt install --no-install-recommends -y git python3-venv
 
       - name: Install pre-commit
