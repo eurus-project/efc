@@ -1,3 +1,5 @@
+future==1.0.0
 Jinja2==3.1.4
+lxml==5.3.0
 MarkupSafe==3.0.2
 PyYAML==6.0.2

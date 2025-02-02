@@ -23,14 +23,23 @@ project(efc
     LANGUAGES C
 )
 
+if(CMAKE_HOST_WIN32)
+	set(VENV_PYTHON ${CMAKE_SOURCE_DIR}/python_venv/Scripts/python)
+else()
+	set(VENV_PYTHON ${CMAKE_SOURCE_DIR}/python_venv/bin/python)
+endif()
+
 add_subdirectory(src/logging/ulog)
+add_subdirectory(src/telemetry/mavlink)
 
 target_sources(app
 PRIVATE
     src/main.c
+    src/telemetry_sender.c
 )
 
 target_link_libraries(app
 PRIVATE
     ulog
+    mavlink
 )

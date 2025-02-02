@@ -1,6 +1,6 @@
 /*
  * This file is part of the efc project <https://github.com/eurus-project/efc/>.
- * Copyright (c) 2024 The efc developers.
+ * Copyright (c) 2024 - 2025 The efc developers.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,11 +28,14 @@
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/usb/usbd.h>
 
+#include "common/mavlink.h"
 #include "ulog.h"
 #include "ulog_accel.h"
 #include "ulog_altitude.h"
 #include "ulog_baro.h"
 #include "ulog_gyro.h"
+
+#include "telemetry_sender.h"
 
 #define ALTITUDE_SOURCE_TYPE_BARO 1
 
@@ -48,6 +51,10 @@ LOG_MODULE_REGISTER(main);
 static const struct gpio_dt_spec fw_running_led =
     GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
+static const uint8_t telemetry_system_id = 0;
+static const uint8_t telemetry_component_id = MAV_COMP_ID_AUTOPILOT1;
+static const uint8_t telemetry_channel_ground = 0;
+
 static struct fs_littlefs main_fs;
 
 static struct fs_mount_t main_fs_mount = {
@@ -58,11 +65,19 @@ static struct fs_mount_t main_fs_mount = {
     .mnt_point = "/SD:",
 };
 
+struct k_pipe telemetry_ground_pipe;
+static uint8_t telemetry_ground_pipe_data[1024];
+
+static mavlink_message_t mavlink_msg_buf;
+
 static ULOG_Inst_Type ulog_log;
 static uint16_t gyro_msg_id = 0;
 static uint16_t accel_msg_id = 0;
 static uint16_t baro_msg_id = 0;
 static uint16_t baro_alt_msg_id = 0;
+
+K_THREAD_STACK_DEFINE(telemetry_thread_stack, 2048);
+static struct k_thread telemetry_thread;
 
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
 static struct usbd_context *sample_usbd;
@@ -95,6 +110,8 @@ static int process_imu(const struct device *dev) {
         return ret;
     }
 
+    const int64_t timestamp_ms = k_uptime_get();
+
     ret = sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, accel);
     if (ret < 0) {
         LOG_ERR("Could not get accelerometer data!");
@@ -112,25 +129,31 @@ static int process_imu(const struct device *dev) {
         LOG_WRN("Could not get IMU die temperature data!");
     }
 
-    printf("Temperature:%g Cel\n"
-           "Accelerometer: %f %f %f m/s/s\n"
-           "Gyroscope:  %f %f %f rad/s\n",
-           sensor_value_to_double(&temperature),
-           sensor_value_to_double(&accel[0]), sensor_value_to_double(&accel[1]),
-           sensor_value_to_double(&accel[2]), sensor_value_to_double(&gyro[0]),
-           sensor_value_to_double(&gyro[1]), sensor_value_to_double(&gyro[2]));
+    const uint16_t telemetry_msg_len = mavlink_msg_scaled_imu_pack_chan(
+        telemetry_system_id, telemetry_component_id, telemetry_channel_ground,
+        &mavlink_msg_buf, timestamp_ms, sensor_value_to_milli(&accel[0]),
+        sensor_value_to_milli(&accel[1]), sensor_value_to_milli(&accel[2]),
+        sensor_value_to_milli(&gyro[0]), sensor_value_to_milli(&gyro[1]),
+        sensor_value_to_milli(&gyro[2]), 0, 0, 0,
+        sensor_value_to_milli(&temperature) / 100);
 
-    const int64_t current_time_ms = k_uptime_get() * 1000;
+    ret =
+        k_pipe_write(&telemetry_ground_pipe, (const uint8_t *)&mavlink_msg_buf,
+                     telemetry_msg_len, K_NO_WAIT);
+
+    if (ret < 0) {
+        LOG_WRN("Could not fit data into telemetry pipe!");
+    }
 
     ULOG_Gyro_Type gyro_msg = {
-        .timestamp = current_time_ms,
+        .timestamp = timestamp_ms * 1000,
         .x = sensor_value_to_float(&gyro[0]),
         .y = sensor_value_to_float(&gyro[1]),
         .z = sensor_value_to_float(&gyro[2]),
     };
 
     ULOG_Accel_Type accel_msg = {
-        .timestamp = current_time_ms,
+        .timestamp = timestamp_ms * 1000,
         .x = sensor_value_to_float(&accel[0]),
         .y = sensor_value_to_float(&accel[1]),
         .z = sensor_value_to_float(&accel[2]),
@@ -170,30 +193,56 @@ static int process_baro(const struct device *dev) {
 
     temperature = sensor_value_to_float(&baro_temp);
     pressure = sensor_value_to_float(&baro_press);
+    const uint32_t timestamp_ms = k_uptime_get();
 
     ULOG_Baro_Type baro_msg = {
-        .timestamp = k_uptime_get() * 1000,
+        .timestamp = timestamp_ms * 1000,
         .temperature = temperature,
         .pressure = pressure,
     };
+
+    const uint16_t telemetry_msg_len = mavlink_msg_scaled_pressure_pack_chan(
+        telemetry_system_id, telemetry_component_id, telemetry_channel_ground,
+        &mavlink_msg_buf, timestamp_ms, pressure * 10.0f, 0.0f,
+        sensor_value_to_milli(&baro_temp) / 100, 0);
+
+    ret =
+        k_pipe_write(&telemetry_ground_pipe, (const uint8_t *)&mavlink_msg_buf,
+                     telemetry_msg_len, K_NO_WAIT);
+
+    if (ret < 0) {
+        LOG_WRN("Could not fit data into telemetry pipe!");
+    }
 
     ULOG_Baro_Write(&ulog_log, &baro_msg, baro_msg_id);
 
     altitude = 44330.0f * (1.0f - powf((pressure / 101.325f), 1.0f / 5.255f));
 
-    ULOG_Altitude_Type altitude_msg = {.timestamp = k_uptime_get() * 1000,
+    ULOG_Altitude_Type altitude_msg = {.timestamp = timestamp_ms * 1000,
                                        .source = ALTITUDE_SOURCE_TYPE_BARO,
                                        .altitude = altitude,
                                        .variance = BMP280_ALTITUDE_VARIANCE_M};
 
     ULOG_Altitude_Write(&ulog_log, &altitude_msg, baro_alt_msg_id);
 
-    printf("Baro Temperature: %g degC\n"
-           "Pressure: %f kPa\n"
-           "Altitude:  %f m\n",
-           (double)temperature, (double)pressure, (double)altitude);
-
     return 0;
+}
+
+void telemetry_heartbeat(void) {
+    LOG_INF("Sending heartbeat!");
+
+    const uint16_t telemetry_msg_len = mavlink_msg_heartbeat_pack_chan(
+        telemetry_system_id, telemetry_component_id, telemetry_channel_ground,
+        &mavlink_msg_buf, MAV_TYPE_GENERIC, MAV_AUTOPILOT_GENERIC,
+        MAV_MODE_FLAG_MANUAL_INPUT_ENABLED, 0, MAV_STATE_ACTIVE);
+
+    int ret =
+        k_pipe_write(&telemetry_ground_pipe, (const uint8_t *)&mavlink_msg_buf,
+                     telemetry_msg_len, K_NO_WAIT);
+
+    if (ret < 0) {
+        LOG_WRN("Could not fit data into telemetry pipe!");
+    }
 }
 
 int main(void) {
@@ -288,6 +337,15 @@ int main(void) {
         .filename = filename,
     };
 
+    k_pipe_init(&telemetry_ground_pipe, telemetry_ground_pipe_data,
+                sizeof(telemetry_ground_pipe_data));
+
+    k_thread_create(&telemetry_thread, telemetry_thread_stack,
+                    K_THREAD_STACK_SIZEOF(telemetry_thread_stack),
+                    telemetry_sender, NULL, NULL, NULL,
+                    K_LOWEST_APPLICATION_THREAD_PRIO, 0, K_NO_WAIT);
+    k_thread_start(&telemetry_thread);
+
     if (ULOG_Init(&ulog_log, &log_cfg) != ULOG_SUCCESS) {
         LOG_ERR("Could not open log!");
     }
@@ -369,6 +427,8 @@ int main(void) {
         process_baro(main_baro);
 
         ULOG_Sync(&ulog_log);
+
+        telemetry_heartbeat();
 
         k_msleep(1000);
     }

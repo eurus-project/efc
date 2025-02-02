@@ -22,12 +22,6 @@ set(YAML_DIR ${CMAKE_SOURCE_DIR}/messages/ulog)
 set(GENERATED_DIR ${CMAKE_BINARY_DIR}/ulog/generated)
 set(GENERATOR_SCRIPT ${CMAKE_SOURCE_DIR}/tools/ulog_gen.py)
 
-if(CMAKE_HOST_WIN32)
-	set(VENV_PYTHON ${CMAKE_SOURCE_DIR}/python_venv/Scripts/python)
-else()
-	set(VENV_PYTHON ${CMAKE_SOURCE_DIR}/python_venv/bin/python)
-endif()
-	
 file(MAKE_DIRECTORY ${GENERATED_DIR})
 
 file(GLOB YAML_FILES ${YAML_DIR}/*.yaml)
