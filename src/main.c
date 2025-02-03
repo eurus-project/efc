@@ -135,7 +135,7 @@ static int process_imu(const struct device *dev) {
         sensor_value_to_milli(&accel[1]), sensor_value_to_milli(&accel[2]),
         sensor_value_to_milli(&gyro[0]), sensor_value_to_milli(&gyro[1]),
         sensor_value_to_milli(&gyro[2]), 0, 0, 0,
-        sensor_value_to_milli(&temperature) / 100);
+        sensor_value_to_milli(&temperature) / 10);
 
     ret =
         k_pipe_write(&telemetry_ground_pipe, (const uint8_t *)&mavlink_msg_buf,
@@ -204,7 +204,7 @@ static int process_baro(const struct device *dev) {
     const uint16_t telemetry_msg_len = mavlink_msg_scaled_pressure_pack_chan(
         telemetry_system_id, telemetry_component_id, telemetry_channel_ground,
         &mavlink_msg_buf, timestamp_ms, pressure * 10.0f, 0.0f,
-        sensor_value_to_milli(&baro_temp) / 100, 0);
+        sensor_value_to_milli(&baro_temp) / 10, 0);
 
     ret =
         k_pipe_write(&telemetry_ground_pipe, (const uint8_t *)&mavlink_msg_buf,
