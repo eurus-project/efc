@@ -1,22 +1,39 @@
 # Eurus flight controller
 
-## Building
+## Setting up the environment
 
-This project is build as a [freestanding](https://docs.zephyrproject.org/4.0.0/develop/application/index.html) Zephyr app, with some additional requirements due to source generation.
+This project is built as a [workspace](https://docs.zephyrproject.org/4.0.0/develop/application/index.html) Zephyr application, with some additional requirements due to source generation.
 
-1. Follow the [Zephyr Getting Started](https://docs.zephyrproject.org/4.0.0/develop/getting_started/index.html) instructions for your host OS to obtain the Zephyr repo, submodules and the SDK
-2. Create a new Python virtual environment for the project and install the required packages like so:
+1. Install the required dependencies as desribed in the [Zephyr Getting Started#Install Dependencies](https://docs.zephyrproject.org/4.0.0/develop/getting_started/index.html#install-dependencies).
+2. Clone the efc repository into an empty directory (e.g. `~/eurus/efc/`). Container directory (`~/eurus/` workspace) will contain Zephyr and additional modules.
+3. Create a new Python virtual environment in the workspace, install west and configure zephyr-related dependencies.
 ```bash
+cd ~/eurus
+python3 -m venv install .venv
+source .venv/bin/activate
+pip install west
+west init -l efc
+west update
+west zephyr-export
+west packages pip --install
+west sdk install
+deactivate
+```
+4. Create a efc-specific virtual environment and install the required packages:
+```bash
+cd ~/eurus/efc
 python -m venv python_venv
 source python_venv/bin/activate
 pip install -r requirements.txt
+deactivate
 ```
-> Note: Sourcing the virtual environment will not be necessary after the first time as CMake will use the virtual environment python binary.
+> Note: Sourcing the efc virtual environment will not be necessary after the first time as CMake will use the virtual environment python binary.
 
-3. Source both the Zephyr python virtual environment and the SDK export script
-4. Use `west` or CMake to build for one of the supported boards:
+## Build
+
+Use `west` or CMake to build for one of the supported boards:
 ```bash
-west build -b blackpill_f411ce
+west build -b blackpill_f411ce app
 ```
 
 
