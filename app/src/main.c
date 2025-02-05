@@ -35,6 +35,7 @@
 #include "ulog_baro.h"
 #include "ulog_gyro.h"
 
+#include "radio_receiver.h"
 #include "telemetry_sender.h"
 
 #define ALTITUDE_SOURCE_TYPE_BARO 1
@@ -75,6 +76,9 @@ static uint16_t gyro_msg_id = 0;
 static uint16_t accel_msg_id = 0;
 static uint16_t baro_msg_id = 0;
 static uint16_t baro_alt_msg_id = 0;
+
+K_THREAD_STACK_DEFINE(radio_thread_stack, 1024);
+static struct k_thread radio_thread;
 
 K_THREAD_STACK_DEFINE(telemetry_thread_stack, 2048);
 static struct k_thread telemetry_thread;
@@ -336,6 +340,10 @@ int main(void) {
     ULOG_Config_Type log_cfg = {
         .filename = filename,
     };
+
+    k_thread_create(&radio_thread, radio_thread_stack,
+                    K_THREAD_STACK_SIZEOF(radio_thread_stack), radio_receiver,
+                    NULL, NULL, NULL, 0, 0, K_NO_WAIT);
 
     k_pipe_init(&telemetry_ground_pipe, telemetry_ground_pipe_data,
                 sizeof(telemetry_ground_pipe_data));

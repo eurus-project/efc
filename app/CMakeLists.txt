@@ -26,6 +26,7 @@ project(efc
 target_sources(app
 PRIVATE
     src/main.c
+    src/radio_receiver.c
     src/telemetry_sender.c
 )
 
