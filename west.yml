@@ -5,7 +5,7 @@ manifest:
   projects:
     - name: zephyr
       remote: eurus-project
-      revision: main
+      revision: boards/weact_stm32h562_core
       import: true
   self:
     path: efc
