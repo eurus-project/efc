@@ -17,7 +17,7 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 
-set(EFC_SOURCE_DIR ${CMAKE_SOURCE_DIR}/../)
+set(EFC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 if(CMAKE_HOST_WIN32)
 	set(VENV_PYTHON ${EFC_SOURCE_DIR}/python_venv/Scripts/python)
 else()

@@ -6,6 +6,8 @@ This project is built as a [workspace](https://docs.zephyrproject.org/4.0.0/deve
 
 1. Install the required dependencies as desribed in the [Zephyr Getting Started#Install Dependencies](https://docs.zephyrproject.org/4.0.0/develop/getting_started/index.html#install-dependencies).
 2. Clone the efc repository into an empty directory (e.g. `~/eurus/efc/`). Container directory (`~/eurus/` workspace) will contain Zephyr and additional modules.
+>Note: Clone the repository with --recurse-submodules flag to recursively update git submodules.
+
 3. Create a new Python virtual environment in the workspace, install west and configure zephyr-related dependencies.
 ```bash
 cd ~/eurus
@@ -33,6 +35,9 @@ deactivate
 
 Use `west` or CMake to build for one of the supported boards:
 ```bash
+cd ~/eurus
+source .venv/bin/activate
+cd efc
 west build -b blackpill_f411ce app
 ```
 
