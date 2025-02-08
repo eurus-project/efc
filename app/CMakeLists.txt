@@ -27,7 +27,9 @@ target_sources(app
 PRIVATE
     src/main.c
     src/radio_receiver.c
+    src/telemetry_packer.c
     src/telemetry_sender.c
+    src/logger.c
 )
 
 target_link_libraries(app
