@@ -36,6 +36,8 @@ LOG_MODULE_REGISTER(logger);
 ZBUS_CHAN_DECLARE(imu_chan);
 ZBUS_CHAN_DECLARE(baro_chan);
 
+ZBUS_CHAN_DEFINE(sync_chan, bool, NULL, NULL, ZBUS_OBSERVERS(logger_sub), 0);
+
 ZBUS_SUBSCRIBER_DEFINE(logger_sub, 16);
 
 // Value derrived from BMP280 datasheet (page 15 of 49) for the given sensor
@@ -48,12 +50,21 @@ extern uint32_t boot_count;
 
 extern struct fs_mount_t main_fs_mount;
 
+static struct k_timer sync_timer;
+
 static ULOG_Inst_Type ulog_log;
 
 static uint16_t gyro_msg_id = 0;
 static uint16_t accel_msg_id = 0;
 static uint16_t baro_msg_id = 0;
 static uint16_t baro_alt_msg_id = 0;
+
+static void sync_notify(struct k_timer *timer_id) {
+    int ret = zbus_chan_notify(&sync_chan, K_NO_WAIT);
+    if (ret < 0) {
+        LOG_ERR("Could not notify logger to sync!");
+    }
+}
 
 void logger(void *dummy1, void *dummy2, void *dummy3) {
     char filename[LFS_NAME_MAX] = {0};
@@ -134,6 +145,10 @@ void logger(void *dummy1, void *dummy2, void *dummy3) {
         LOG_ERR("Could not subscribe ULog altitude message!");
     }
 
+    k_timer_init(&sync_timer, sync_notify, NULL);
+    k_timer_start(&sync_timer, K_MSEC(CONFIG_APP_DATA_LOGGING_SYNC_INTERVAL),
+                  K_MSEC(CONFIG_APP_DATA_LOGGING_SYNC_INTERVAL));
+
     while (true) {
         const struct zbus_channel *chan;
         int ret = zbus_sub_wait(&logger_sub, &chan, K_FOREVER);
@@ -191,8 +206,8 @@ void logger(void *dummy1, void *dummy2, void *dummy3) {
                 .variance = BMP280_ALTITUDE_VARIANCE_M};
 
             ULOG_Altitude_Write(&ulog_log, &altitude_msg, baro_alt_msg_id);
+        } else if (chan == &sync_chan) {
+            ULOG_Sync(&ulog_log);
         }
-
-        ULOG_Sync(&ulog_log);
     }
 }
