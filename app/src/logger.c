@@ -144,7 +144,7 @@ void logger(void *dummy1, void *dummy2, void *dummy3) {
 
         if (chan == &imu_chan) {
             struct imu_6dof_data msg;
-            ret = zbus_chan_read(chan, &msg, K_NO_WAIT);
+            ret = zbus_chan_read(chan, &msg, K_USEC(1));
             if (ret < 0) {
                 LOG_ERR("Failed to read from logger subscriber!");
             }
@@ -167,7 +167,7 @@ void logger(void *dummy1, void *dummy2, void *dummy3) {
 
         } else if (chan == &baro_chan) {
             struct baro_data msg;
-            ret = zbus_chan_read(chan, &msg, K_NO_WAIT);
+            ret = zbus_chan_read(chan, &msg, K_USEC(1));
             if (ret < 0) {
                 LOG_ERR("Failed to read from logger subscriber!");
             }
