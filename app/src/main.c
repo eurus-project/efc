@@ -69,7 +69,8 @@ static struct fs_mount_t main_fs_mount = {
 struct k_pipe telemetry_ground_pipe;
 static uint8_t telemetry_ground_pipe_data[1024];
 
-static mavlink_message_t mavlink_msg_buf;
+static mavlink_message_t mavlink_msg;
+static uint8_t mavlink_ser_buf[MAVLINK_MAX_PACKET_LEN];
 
 static ULOG_Inst_Type ulog_log;
 static uint16_t gyro_msg_id = 0;
@@ -133,17 +134,19 @@ static int process_imu(const struct device *dev) {
         LOG_WRN("Could not get IMU die temperature data!");
     }
 
-    const uint16_t telemetry_msg_len = mavlink_msg_scaled_imu_pack_chan(
+    mavlink_msg_scaled_imu_pack_chan(
         telemetry_system_id, telemetry_component_id, telemetry_channel_ground,
-        &mavlink_msg_buf, timestamp_ms, sensor_value_to_milli(&accel[0]),
+        &mavlink_msg, timestamp_ms, sensor_value_to_milli(&accel[0]),
         sensor_value_to_milli(&accel[1]), sensor_value_to_milli(&accel[2]),
         sensor_value_to_milli(&gyro[0]), sensor_value_to_milli(&gyro[1]),
         sensor_value_to_milli(&gyro[2]), 0, 0, 0,
         sensor_value_to_milli(&temperature) / 10);
 
-    ret =
-        k_pipe_write(&telemetry_ground_pipe, (const uint8_t *)&mavlink_msg_buf,
-                     telemetry_msg_len, K_NO_WAIT);
+    const uint16_t telemetry_msg_len =
+        mavlink_msg_to_send_buffer(mavlink_ser_buf, &mavlink_msg);
+
+    ret = k_pipe_write(&telemetry_ground_pipe, mavlink_ser_buf,
+                       telemetry_msg_len, K_NO_WAIT);
 
     if (ret < 0) {
         LOG_WRN("Could not fit data into telemetry pipe!");
@@ -205,14 +208,16 @@ static int process_baro(const struct device *dev) {
         .pressure = pressure,
     };
 
-    const uint16_t telemetry_msg_len = mavlink_msg_scaled_pressure_pack_chan(
+    mavlink_msg_scaled_pressure_pack_chan(
         telemetry_system_id, telemetry_component_id, telemetry_channel_ground,
-        &mavlink_msg_buf, timestamp_ms, pressure * 10.0f, 0.0f,
+        &mavlink_msg, timestamp_ms, pressure * 10.0f, 0.0f,
         sensor_value_to_milli(&baro_temp) / 10, 0);
 
-    ret =
-        k_pipe_write(&telemetry_ground_pipe, (const uint8_t *)&mavlink_msg_buf,
-                     telemetry_msg_len, K_NO_WAIT);
+    const uint16_t telemetry_msg_len =
+        mavlink_msg_to_send_buffer(mavlink_ser_buf, &mavlink_msg);
+
+    ret = k_pipe_write(&telemetry_ground_pipe, mavlink_ser_buf,
+                       telemetry_msg_len, K_NO_WAIT);
 
     if (ret < 0) {
         LOG_WRN("Could not fit data into telemetry pipe!");
@@ -235,14 +240,16 @@ static int process_baro(const struct device *dev) {
 void telemetry_heartbeat(void) {
     LOG_INF("Sending heartbeat!");
 
-    const uint16_t telemetry_msg_len = mavlink_msg_heartbeat_pack_chan(
+    mavlink_msg_heartbeat_pack_chan(
         telemetry_system_id, telemetry_component_id, telemetry_channel_ground,
-        &mavlink_msg_buf, MAV_TYPE_GENERIC, MAV_AUTOPILOT_GENERIC,
+        &mavlink_msg, MAV_TYPE_GENERIC, MAV_AUTOPILOT_GENERIC,
         MAV_MODE_FLAG_MANUAL_INPUT_ENABLED, 0, MAV_STATE_ACTIVE);
 
-    int ret =
-        k_pipe_write(&telemetry_ground_pipe, (const uint8_t *)&mavlink_msg_buf,
-                     telemetry_msg_len, K_NO_WAIT);
+    const uint16_t telemetry_msg_len =
+        mavlink_msg_to_send_buffer(mavlink_ser_buf, &mavlink_msg);
+
+    int ret = k_pipe_write(&telemetry_ground_pipe, mavlink_ser_buf,
+                           telemetry_msg_len, K_NO_WAIT);
 
     if (ret < 0) {
         LOG_WRN("Could not fit data into telemetry pipe!");
