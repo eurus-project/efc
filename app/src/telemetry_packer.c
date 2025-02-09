@@ -28,18 +28,33 @@ LOG_MODULE_REGISTER(telemetry_packer);
 ZBUS_CHAN_DECLARE(imu_chan);
 ZBUS_CHAN_DECLARE(baro_chan);
 
+ZBUS_CHAN_DEFINE(heartbeat_chan, bool, NULL, NULL,
+                 ZBUS_OBSERVERS(telemetry_packer_sub), 0);
+
 ZBUS_SUBSCRIBER_DEFINE(telemetry_packer_sub, 16);
 
-extern uint8_t telemetry_system_id;
-extern uint8_t telemetry_component_id;
-extern uint8_t telemetry_channel_ground;
+const uint8_t telemetry_system_id = 0;
+const uint8_t telemetry_component_id = MAV_COMP_ID_AUTOPILOT1;
+const uint8_t telemetry_channel_ground = MAVLINK_COMM_0;
+
+static struct k_timer heartbeat_timer;
 
 static mavlink_message_t mavlink_msg;
 static uint8_t mavlink_ser_buf[MAVLINK_MAX_PACKET_LEN];
 
 extern struct k_pipe telemetry_ground_pipe;
 
+static void heartbeat_notify(struct k_timer *timer_id) {
+    int ret = zbus_chan_notify(&heartbeat_chan, K_NO_WAIT);
+    if (ret < 0) {
+        LOG_ERR("Could not notify telemetry packer to send heartbeat!");
+    }
+}
+
 void telemetry_packer(void *dummy1, void *dummy2, void *dummy3) {
+    k_timer_init(&heartbeat_timer, heartbeat_notify, NULL);
+    k_timer_start(&heartbeat_timer, K_SECONDS(1), K_SECONDS(1));
+
     while (true) {
         const struct zbus_channel *chan;
         int ret = zbus_sub_wait(&telemetry_packer_sub, &chan, K_FOREVER);
@@ -95,6 +110,22 @@ void telemetry_packer(void *dummy1, void *dummy2, void *dummy3) {
 
             ret = k_pipe_write(&telemetry_ground_pipe, mavlink_ser_buf,
                                telemetry_msg_len, K_NO_WAIT);
+
+            if (ret < 0) {
+                LOG_WRN("Could not fit data into telemetry pipe!");
+            }
+        } else if (chan == &heartbeat_chan) {
+            mavlink_msg_heartbeat_pack_chan(
+                telemetry_system_id, telemetry_component_id,
+                telemetry_channel_ground, &mavlink_msg, MAV_TYPE_GENERIC,
+                MAV_AUTOPILOT_GENERIC, MAV_MODE_FLAG_MANUAL_INPUT_ENABLED, 0,
+                MAV_STATE_ACTIVE);
+
+            const uint16_t telemetry_msg_len =
+                mavlink_msg_to_send_buffer(mavlink_ser_buf, &mavlink_msg);
+
+            int ret = k_pipe_write(&telemetry_ground_pipe, mavlink_ser_buf,
+                                   telemetry_msg_len, K_NO_WAIT);
 
             if (ret < 0) {
                 LOG_WRN("Could not fit data into telemetry pipe!");

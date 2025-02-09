@@ -34,8 +34,6 @@
 #include "telemetry_packer.h"
 #include "telemetry_sender.h"
 
-#include "common/mavlink.h"
-
 #include "types.h"
 
 LOG_MODULE_REGISTER(main);
@@ -55,10 +53,6 @@ ZBUS_CHAN_DEFINE(baro_chan, struct baro_data, NULL, NULL,
 static const struct gpio_dt_spec fw_running_led =
     GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
-const uint8_t telemetry_system_id = 0;
-const uint8_t telemetry_component_id = MAV_COMP_ID_AUTOPILOT1;
-const uint8_t telemetry_channel_ground = MAVLINK_COMM_0;
-
 static struct fs_littlefs main_fs;
 
 struct fs_mount_t main_fs_mount = {
@@ -73,9 +67,6 @@ uint32_t boot_count = 0;
 
 struct k_pipe telemetry_ground_pipe;
 static uint8_t telemetry_ground_pipe_data[1024];
-
-static mavlink_message_t mavlink_msg;
-static uint8_t mavlink_ser_buf[MAVLINK_MAX_PACKET_LEN];
 
 K_THREAD_STACK_DEFINE(radio_thread_stack, 1024);
 static struct k_thread radio_thread;
@@ -194,25 +185,6 @@ static int process_baro(const struct device *dev) {
     return 0;
 }
 
-void telemetry_heartbeat(void) {
-    LOG_INF("Sending heartbeat!");
-
-    mavlink_msg_heartbeat_pack_chan(
-        telemetry_system_id, telemetry_component_id, telemetry_channel_ground,
-        &mavlink_msg, MAV_TYPE_GENERIC, MAV_AUTOPILOT_GENERIC,
-        MAV_MODE_FLAG_MANUAL_INPUT_ENABLED, 0, MAV_STATE_ACTIVE);
-
-    const uint16_t telemetry_msg_len =
-        mavlink_msg_to_send_buffer(mavlink_ser_buf, &mavlink_msg);
-
-    int ret = k_pipe_write(&telemetry_ground_pipe, mavlink_ser_buf,
-                           telemetry_msg_len, K_NO_WAIT);
-
-    if (ret < 0) {
-        LOG_WRN("Could not fit data into telemetry pipe!");
-    }
-}
-
 int main(void) {
     if (DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)) {
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
@@ -328,8 +300,6 @@ int main(void) {
         process_imu(main_imu);
 
         process_baro(main_baro);
-
-        telemetry_heartbeat();
 
         k_msleep(1000);
     }
