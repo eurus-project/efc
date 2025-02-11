@@ -1,0 +1,25 @@
+# ESC (Electronic Speed Controller) demo configuration
+
+mainmenu "Eurus Flight Controller - ESC demo"
+
+
+# ESC Protocol configuration
+choice
+    prompt "ESC Protocol Selection"
+    default ESC_PWM
+
+config ESC_PWM
+    bool "ESC PWM protocol"
+
+config ESC_ONESHOT_125
+    bool "ESC Oneshot125 protocol"
+
+config ESC_ONESHOT_42
+    bool "ESC Oneshot42 protocol"
+
+config ESC_MULTISHOT
+    bool "ESC Multishot protocol"
+
+endchoice
+
+source "../efc/libs/motor_control/esc/Kconfig"
