@@ -15,8 +15,23 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-cmake_minimum_required(VERSION 3.20.0)
+cmake_minimum_required(VERSION 3.0)
 
-add_subdirectory(logging)
-add_subdirectory(telemetry)
-add_subdirectory(motor_control)
+project (esc VERSION 1.0.0)
+
+set(SOURCES 
+    esc.c    
+)
+
+# Create the library
+add_library(${PROJECT_NAME} STATIC ${SOURCES})
+
+target_include_directories(${PROJECT_NAME}
+PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(${PROJECT_NAME}
+PUBLIC
+    zephyr_interface
+)
