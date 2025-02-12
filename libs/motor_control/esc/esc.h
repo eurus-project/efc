@@ -13,7 +13,28 @@
 #include <zephyr/kernel.h>
 
 /*********************************** Defines **********************************/
+#define MIN_THROTTLE_OFFSET_ON 1
 
+/* NOTE: Manually applied offset bellow is the placeholder for future
+implementation of ESC parameters being stored in NVS (Non Volatile Storage).
+Minimum throttle values can vary from vendor to vendor. In future, it will be
+user-configurable according to used ESCss */
+
+#if MIN_THROTTLE_OFFSET_ON
+// ESC Protocol Duty Cycle range in us
+#define DC_MIN_PWM_US 1300
+#define DC_MAX_PWM_US 2000
+
+#define DC_MIN_ONESHOT_125_US 162.5
+#define DC_MAX_ONESHOT_125_US 250
+
+#define DC_MIN_ONESHOT_42_US 54.6
+#define DC_MAX_ONESHOT_42_US 84
+
+#define DC_MIN_MULTISHOT_US 11
+#define DC_MAX_MULTISHOT_US 25
+
+#else
 // ESC Protocol Duty Cycle range in us
 #define DC_MIN_PWM_US 1000
 #define DC_MAX_PWM_US 2000
@@ -26,6 +47,8 @@
 
 #define DC_MIN_MULTISHOT_US 5
 #define DC_MAX_MULTISHOT_US 25
+
+#endif
 
 // TODO: Check this!
 //  ESC Protocol Period in us

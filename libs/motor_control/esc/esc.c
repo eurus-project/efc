@@ -193,35 +193,6 @@ status_t ESC_Arm(esc_t *esc) {
         return -1;
     }
 
-    /*
-    ret = ESC_SetSpeed(esc, 0);
-    if (ret)
-    {
-        printk("[ESC]: Error: Cannot set throttle, cannot arm ESC!\n");
-        ESC_Stop(esc);
-        return -1;
-    }
-    k_msleep(100); //NOTE: This delay is optional, maybe it's not needed
-
-    ret = ESC_SetSpeed(esc, ARM_THROTTLE);
-    if (ret)
-    {
-        printk("[ESC]: Error: Cannot set throttle, cannot arm ESC!\n");
-        ESC_Stop(esc);
-        return -1;
-    }
-
-    k_msleep(ARM_DURATION);
-
-    ret = ESC_SetSpeed(esc, 0);
-    if (ret)
-    {
-        printk("[ESC]: Error: Cannot set throttle, cannot arm ESC!\n");
-        ESC_Stop(esc);
-        return -1;
-    }
-    */
-
     return 0;
 }
 
