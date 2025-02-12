@@ -110,8 +110,13 @@ void logger(void *dummy1, void *dummy2, void *dummy3) {
         LOG_ERR("Could not system name info to the log!");
     }
 
+#if CONFIG_APP_PRIMARY_IMU_MPU6050
     const char main_imu_name_key[] = "char[7] main_imu_name";
     const char main_imu_name[] = "MPU6050";
+#elif CONFIG_APP_PRIMARY_IMU_ICM42688P
+    const char main_imu_name_key[] = "char[9] main_imu_name";
+    const char main_imu_name[] = "ICM42688P";
+#endif
     if (ULOG_AddInfo(&ulog_log, main_imu_name_key, strlen(main_imu_name_key),
                      main_imu_name, strlen(main_imu_name))) {
         LOG_ERR("Could not main IMU info to the log!");

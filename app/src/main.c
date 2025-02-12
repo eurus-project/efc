@@ -210,7 +210,16 @@ int main(void) {
         return 0;
     }
 
-    const struct device *const main_imu = DEVICE_DT_GET(DT_NODELABEL(main_imu));
+#if CONFIG_APP_PRIMARY_IMU_MPU6050
+    const struct device *const main_imu =
+        DEVICE_DT_GET(DT_NODELABEL(imu_mpu6050));
+#elif CONFIG_APP_PRIMARY_IMU_ICM42688P
+    const struct device *const main_imu =
+        DEVICE_DT_GET(DT_NODELABEL(imu_icm42688p));
+#else
+    LOG_ERR("IMU Device not selected!");
+    return 0;
+#endif
 
     if (!device_is_ready(main_imu)) {
         LOG_ERR("Device %s is not ready\n", main_imu->name);
