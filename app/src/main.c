@@ -148,6 +148,13 @@ static int process_imu(const struct device *dev) {
     return 0;
 }
 
+#ifdef CONFIG_ICM42688_TRIGGER
+static void handle_icm42688p_drdy(const struct device *dev,
+                                  const struct sensor_trigger *trig) {
+    process_imu(dev);
+}
+#endif
+
 static int process_baro(const struct device *dev) {
     int ret = sensor_sample_fetch(dev);
     if (ret < 0) {
@@ -253,12 +260,28 @@ int main(void) {
         return 0;
     }
 
+    bool main_imu_using_trigger = false;
+
 #if CONFIG_APP_PRIMARY_IMU_MPU6050
     const struct device *const main_imu =
         DEVICE_DT_GET(DT_NODELABEL(imu_mpu6050));
 #elif CONFIG_APP_PRIMARY_IMU_ICM42688P
     const struct device *const main_imu =
         DEVICE_DT_GET(DT_NODELABEL(imu_icm42688p));
+
+#ifdef CONFIG_ICM42688_TRIGGER
+    struct sensor_trigger icm42688p_trigger = {.type = SENSOR_TRIG_DATA_READY,
+                                               .chan = SENSOR_CHAN_ALL};
+
+    ret =
+        sensor_trigger_set(main_imu, &icm42688p_trigger, handle_icm42688p_drdy);
+    if (ret < 0) {
+        LOG_ERR("Could not configure IMU trigger.\n");
+        return 0;
+    }
+
+    main_imu_using_trigger = true;
+#endif
 #else
     LOG_ERR("IMU Device not selected!");
     return 0;
@@ -314,7 +337,8 @@ int main(void) {
             return 0;
         }
 
-        process_imu(main_imu);
+        if (!main_imu_using_trigger)
+            process_imu(main_imu);
 
         process_baro(main_baro);
 
