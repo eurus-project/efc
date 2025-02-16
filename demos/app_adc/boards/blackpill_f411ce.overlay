@@ -1,0 +1,98 @@
+/*
+ * This file is part of the efc project <https://github.com/eurus-project/efc/>.
+ * Copyright (c) 2024 The efc developers.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/ {
+	chosen {
+		zephyr,console = &cdc_acm_uart;
+		telemetry,ground = &usart1;
+		futaba,sbus = &sbus_usart;
+	};
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+&spi1 {
+    cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
+
+	sdhc0: sdhc@0 {
+                compatible = "zephyr,sdhc-spi-slot";
+                reg = <0>;
+                status = "okay";
+                mmc {
+                    compatible = "zephyr,sdmmc-disk";
+                    disk-name = "SD";
+                    status = "okay";
+                };
+                spi-max-frequency = <24000000>;
+        };
+};
+
+&spi2 {
+    status = "okay";
+    pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15>;
+    pinctrl-names = "default";
+    cs-gpios = <&gpiob 12 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+
+    bme280@0 {
+        compatible = "bosch,bme280";
+        reg = <0>;
+        spi-max-frequency = <1000000>;
+    };
+};
+
+&i2c1 {
+	main_imu: mpu6050@68 {
+		compatible = "invensense,mpu6050";
+		reg = <0x68>;
+		status = "okay";
+		int-gpios = <&gpiob 7 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&usart2 {
+    pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
+	pinctrl-names = "default";
+	status = "okay";
+
+    sbus_usart: sbus {
+        compatible = "futaba,sbus";
+        right_stick_x {
+            channel = <1>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <INPUT_ABS_RX>;
+        };
+        right_stick_y {
+            channel = <2>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <INPUT_ABS_RY>;
+        };
+        left_stick_x {
+            channel = <3>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <INPUT_ABS_THROTTLE>;
+        };
+        left_stick_y {
+            channel = <4>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <INPUT_ABS_RZ>;
+        };
+    };
+};
