@@ -1,6 +1,6 @@
 #
 # This file is part of the efc project <https://github.com/eurus-project/efc/>.
-# Copyright (c) 2024 The efc developers.
+# Copyright (c) (2024 - Present), The efc developers.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
