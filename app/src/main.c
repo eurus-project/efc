@@ -63,7 +63,7 @@ struct fs_mount_t main_fs_mount = {
     .mnt_point = "/SD:",
 };
 
-uint32_t boot_count = 0;
+int32_t boot_count = -1;
 
 struct k_pipe telemetry_ground_pipe;
 static uint8_t telemetry_ground_pipe_data[1024];
@@ -185,6 +185,49 @@ static int process_baro(const struct device *dev) {
     return 0;
 }
 
+static int update_boot_count(void) {
+    struct fs_file_t boot_count_file;
+    fs_file_t_init(&boot_count_file);
+
+    char filename[LFS_NAME_MAX];
+    snprintf(filename, sizeof(filename), "%s/boot_count",
+             main_fs_mount.mnt_point);
+    int ret = fs_open(&boot_count_file, filename, FS_O_RDWR | FS_O_CREATE);
+    if (ret < 0) {
+        LOG_ERR("Could not open file!\n");
+        return ret;
+    }
+
+    ret = fs_read(&boot_count_file, &boot_count, sizeof(boot_count));
+    if (ret < 0) {
+        LOG_ERR("Could not read from file!\n");
+        return ret;
+    }
+
+    LOG_INF("Boot count: %d\n", (int)boot_count);
+
+    ret = fs_seek(&boot_count_file, 0, FS_SEEK_SET);
+    if (ret < 0) {
+        LOG_ERR("Could not seek to beggining of the file!\n");
+        return ret;
+    }
+
+    boot_count += 1;
+    ret = fs_write(&boot_count_file, &boot_count, sizeof(boot_count));
+    if (ret < 0) {
+        LOG_ERR("Could not write to file!\n");
+        return ret;
+    }
+
+    ret = fs_close(&boot_count_file);
+    if (ret < 0) {
+        LOG_ERR("Could not close file!\n");
+        return ret;
+    }
+
+    return 0;
+}
+
 int main(void) {
     if (DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)) {
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
@@ -236,47 +279,12 @@ int main(void) {
     ret = fs_mount(&main_fs_mount);
     if (ret < 0) {
         LOG_ERR("Could not mount filesystem!\n");
-        return 0;
     }
 
-    struct fs_file_t boot_count_file;
-    fs_file_t_init(&boot_count_file);
-
-    char filename[LFS_NAME_MAX];
-    snprintf(filename, sizeof(filename), "%s/boot_count",
-             main_fs_mount.mnt_point);
-    ret = fs_open(&boot_count_file, filename, FS_O_RDWR | FS_O_CREATE);
+    ret = update_boot_count();
     if (ret < 0) {
-        LOG_ERR("Could not open file!\n");
-        return 0;
+        LOG_ERR("Could not update boot count!");
     }
-
-    ret = fs_read(&boot_count_file, &boot_count, sizeof(boot_count));
-    if (ret < 0) {
-        LOG_ERR("Could not read from file!\n");
-        return 0;
-    }
-
-    ret = fs_seek(&boot_count_file, 0, FS_SEEK_SET);
-    if (ret < 0) {
-        LOG_ERR("Could not seek to beggining of the file!\n");
-        return 0;
-    }
-
-    boot_count += 1;
-    ret = fs_write(&boot_count_file, &boot_count, sizeof(boot_count));
-    if (ret < 0) {
-        LOG_ERR("Could not write to file!\n");
-        return 0;
-    }
-
-    ret = fs_close(&boot_count_file);
-    if (ret < 0) {
-        LOG_ERR("Could not close file!\n");
-        return 0;
-    }
-
-    LOG_INF("Boot count: %d\n", (int)boot_count);
 
     k_pipe_init(&telemetry_ground_pipe, telemetry_ground_pipe_data,
                 sizeof(telemetry_ground_pipe_data));
