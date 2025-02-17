@@ -49,7 +49,7 @@
     status = "okay";
     pinctrl-0 = <&spi2_sck_pb10 &spi2_miso_pc2 &spi2_mosi_pc1>;
     pinctrl-names = "default";
-    cs-gpios = <&gpioa 3 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+    cs-gpios = <&gpiob 0 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
     bme280@0 {
         compatible = "bosch,bme280";
