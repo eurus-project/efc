@@ -25,6 +25,7 @@
 #include <zephyr/fs/littlefs.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/settings/settings.h>
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/usb/usbd.h>
 #include <zephyr/zbus/zbus.h>
@@ -192,47 +193,43 @@ static int process_baro(const struct device *dev) {
     return 0;
 }
 
+/* Top-level efc settings handler. */
+static int main_settings_set(const char *name, size_t len,
+                             settings_read_cb read_cb, void *cb_arg) {
+    const char *next;
+    int rc;
+
+    if (settings_name_steq(name, "bootcnt", &next) && !next) {
+        if (len != sizeof(boot_count)) {
+            return -EINVAL;
+        }
+
+        rc = read_cb(cb_arg, &boot_count, sizeof(boot_count));
+        if (rc >= 0) {
+            return 0;
+        }
+        return rc;
+    }
+
+    return -ENOENT;
+}
+
+static int main_settings_export(int (*storage_func)(const char *name,
+                                                    const void *value,
+                                                    size_t val_len)) {
+    return storage_func("efc/bootcnt", &boot_count, sizeof(boot_count));
+}
+
+SETTINGS_STATIC_HANDLER_DEFINE(main_settings, "efc", NULL, main_settings_set,
+                               NULL, main_settings_export);
+
 static int update_boot_count(void) {
-    struct fs_file_t boot_count_file;
-    fs_file_t_init(&boot_count_file);
-
-    char filename[LFS_NAME_MAX];
-    snprintf(filename, sizeof(filename), "%s/boot_count",
-             main_fs_mount.mnt_point);
-    int ret = fs_open(&boot_count_file, filename, FS_O_RDWR | FS_O_CREATE);
-    if (ret < 0) {
-        LOG_ERR("Could not open file!\n");
-        return ret;
+    boot_count++;
+    int rc = settings_save_subtree("efc/bootcnt");
+    if (rc < 0) {
+        boot_count = -1;
     }
-
-    ret = fs_read(&boot_count_file, &boot_count, sizeof(boot_count));
-    if (ret < 0) {
-        LOG_ERR("Could not read from file!\n");
-        return ret;
-    }
-
-    LOG_INF("Boot count: %d\n", (int)boot_count);
-
-    ret = fs_seek(&boot_count_file, 0, FS_SEEK_SET);
-    if (ret < 0) {
-        LOG_ERR("Could not seek to beggining of the file!\n");
-        return ret;
-    }
-
-    boot_count += 1;
-    ret = fs_write(&boot_count_file, &boot_count, sizeof(boot_count));
-    if (ret < 0) {
-        LOG_ERR("Could not write to file!\n");
-        return ret;
-    }
-
-    ret = fs_close(&boot_count_file);
-    if (ret < 0) {
-        LOG_ERR("Could not close file!\n");
-        return ret;
-    }
-
-    return 0;
+    return rc;
 }
 
 int main(void) {
@@ -302,6 +299,16 @@ int main(void) {
     ret = fs_mount(&main_fs_mount);
     if (ret < 0) {
         LOG_ERR("Could not mount filesystem!\n");
+    }
+
+    ret = settings_subsys_init();
+    if (ret < 0) {
+        LOG_ERR("Could not initialize settings!\n");
+    }
+
+    ret = settings_load_subtree("efc");
+    if (ret < 0) {
+        LOG_ERR("Could not load settings!\n");
     }
 
     ret = update_boot_count();
