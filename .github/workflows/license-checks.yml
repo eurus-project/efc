@@ -1,0 +1,21 @@
+name: license-checks
+
+on:
+  push:
+
+jobs:
+  license-header-check:
+    name: license header check
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        path: ${{ github.event.repository.name }}
+    - name: Check license headers
+      uses: viperproject/check-license-header@v2
+      with:
+        path: "${{ github.event.repository.name }}"
+        config: "${{ github.event.repository.name }}/.github/license-checks/config.json"
+        strict: false
