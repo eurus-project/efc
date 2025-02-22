@@ -45,10 +45,16 @@ typedef enum {
 } mixer_uav_cfg_t;
 
 typedef struct {
+    uint8_t thrust;
+    uint8_t roll;
+    uint8_t pitch;
+    uint8_t yaw;
+} mixer_input_t;
+
+typedef struct {
     esc_t motor_arr[MAX_MOTOR_INSTANCES];
     uint8_t motor_instances;
     mixer_uav_cfg_t uav_config;
-
 } mixer_t;
 
 /********************************** Functions *********************************/
@@ -56,6 +62,6 @@ mix_status_t MIXER_AddMotorInstance(esc_t *esc, mixer_t *mixer);
 
 mix_status_t MIXER_Init(mixer_t *mixer, mixer_uav_cfg_t uav_cfg);
 
-mix_status_t MIXER_Execute(mixer_t *mixer);
+mix_status_t MIXER_Execute(mixer_t *mixer, mixer_input_t *mixer_in);
 
 #endif

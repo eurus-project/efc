@@ -40,10 +40,10 @@ mix_status_t MIXER_AddMotorInstance(esc_t *esc, mixer_t *mixer) {
     if (motor_count == 0) {
         mixer->motor_instances = 1;
     } else if (mixer->motor_instances < MAX_MOTOR_INSTANCES) {
-        mixer.motor_instances++;
+        mixer->motor_instances++;
     } else {
         printk(
-            "Error(mixer): Cannor exceed maximum number of motor instances!");
+            "Error(mixer): Cannot exceed maximum number of motor instances!");
         return -1;
     }
 
@@ -55,7 +55,44 @@ mix_status_t MIXER_AddMotorInstance(esc_t *esc, mixer_t *mixer) {
 mix_status_t MIXER_Init(mixer_t *mixer, mixer_uav_cfg_t uav_cfg) {
     /* Add necessary checks here ... */
 
+    /* UAV geometrical configuration will be fixed to quadrotor X configuration
+       in the first editions of this feature. uav_config will be used in future
+       for support of multiple UAV geometrical configurations. */
     mixer->uav_config = uav_cfg;
+
+    return 0;
 }
 
-mix_status_t MIXER_Execute(mixer_t *mixer) {}
+mix_status_t MIXER_Execute(mixer_t *mixer, mixer_input_t *mix_in) {
+    /* Quadrotor X multirotor configuration fixed  */
+    uint8_t m1 = 0, m2 = 0, m3 = 0, m4 = 0;
+    status_t esc_status;
+
+    // TODO: Add checks here for edge-cases like R=P=0 and Y>T
+    switch (mixer->uav_config) {
+    case MIXER_UAV_CFG_QUADROTOR_X:
+        m1 = mix_in->thrust - mix_in->roll + mix_in->pitch + mix_in->yaw;
+        m2 = mix_in->thrust + mix_in->roll - mix_in->pitch + mix_in->yaw;
+        m3 = mix_in->thrust + mix_in->roll + mix_in->pitch - mix_in->yaw;
+        m4 = mix_in->thrust - mix_in->roll - mix_in->pitch - mix_in->yaw;
+        break;
+
+    default:
+        break;
+    }
+    /* Set calculated motor speeds */
+    esc_status = ESC_SetSpeed(&mixer->motor_arr[0], m1);
+    if (esc_status < 0)
+        return -1;
+    esc_status = ESC_SetSpeed(&mixer->motor_arr[1], m2);
+    if (esc_status < 0)
+        return -1;
+    esc_status = ESC_SetSpeed(&mixer->motor_arr[2], m3);
+    if (esc_status < 0)
+        return -1;
+    esc_status = ESC_SetSpeed(&mixer->motor_arr[3], m4);
+    if (esc_status < 0)
+        return -1;
+
+    return 0;
+}
