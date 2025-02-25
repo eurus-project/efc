@@ -20,6 +20,7 @@
 / {
 	chosen {
 		zephyr,console = &cdc_acm_uart;
+		zephyr,shell-uart = &cdc_acm_uart;
 		telemetry,ground = &usart1;
 		futaba,sbus = &sbus_usart;
 	};
