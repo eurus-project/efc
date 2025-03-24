@@ -15,9 +15,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <zephyr/dt-bindings/sensor/icm42688.h>
+
 / {
 	chosen {
 		zephyr,console = &cdc_acm_uart;
+        zephyr,shell-uart = &cdc_acm_uart;
 		telemetry,ground = &usart1;
         futaba,sbus = &sbus_usart;
 	};
@@ -49,17 +52,33 @@
     status = "okay";
     pinctrl-0 = <&spi2_sck_pb10 &spi2_miso_pc2 &spi2_mosi_pc1>;
     pinctrl-names = "default";
-    cs-gpios = <&gpiob 0 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+    cs-gpios = <&gpiob 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>,
+               <&gpioc 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
     bme280@0 {
         compatible = "bosch,bme280";
         reg = <0>;
         spi-max-frequency = <1000000>;
     };
+
+    imu_icm42688p: icm42688@1 {
+        compatible = "invensense,icm42688";
+        reg = <1>;
+        status = "okay";
+        label = "ICM42688P";
+        spi-max-frequency = <1000000>;
+        int-gpios = <&gpioc 0 GPIO_ACTIVE_HIGH>;
+        accel-pwr-mode = <ICM42688_DT_ACCEL_LN>;
+        accel-fs = <ICM42688_DT_ACCEL_FS_16>;
+        accel-odr = <ICM42688_DT_ACCEL_ODR_50>;
+        gyro-pwr-mode= <ICM42688_DT_GYRO_LN>;
+        gyro-fs = <ICM42688_DT_GYRO_FS_2000>;
+        gyro-odr = <ICM42688_DT_GYRO_ODR_50>;
+	};
 };
 
 &i2c1 {
-	main_imu: mpu6050@68 {
+	imu_mpu6050: mpu6050@68 {
 		compatible = "invensense,mpu6050";
 		reg = <0x68>;
 		status = "okay";
