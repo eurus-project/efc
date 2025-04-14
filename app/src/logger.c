@@ -46,7 +46,7 @@ ZBUS_SUBSCRIBER_DEFINE(logger_sub, 16);
 
 #define ALTITUDE_SOURCE_TYPE_BARO 1
 
-extern uint32_t boot_count;
+extern int32_t boot_count;
 
 extern struct fs_mount_t main_fs_mount;
 
@@ -69,14 +69,22 @@ static void sync_notify(struct k_timer *timer_id) {
 void logger(void *dummy1, void *dummy2, void *dummy3) {
     char filename[LFS_NAME_MAX] = {0};
 
-    snprintf(filename, sizeof(filename), "%s/log_%d.ulg",
-             main_fs_mount.mnt_point, (int)boot_count);
+    if (boot_count >= 0) {
+        snprintf(filename, sizeof(filename), "%s/log_%d.ulg",
+                 main_fs_mount.mnt_point, (int)boot_count);
+    } else {
+        LOG_WRN("No boot count, logging to log_tmp.ulg!");
+        snprintf(filename, sizeof(filename), "%s/log_tmp.ulg",
+                 main_fs_mount.mnt_point);
+    }
+
     ULOG_Config_Type log_cfg = {
         .filename = filename,
     };
 
     if (ULOG_Init(&ulog_log, &log_cfg) != ULOG_SUCCESS) {
         LOG_ERR("Could not open log! Proceeding without logging.");
+        zbus_obs_set_enable(&logger_sub, false);
         return;
     }
 
@@ -110,8 +118,13 @@ void logger(void *dummy1, void *dummy2, void *dummy3) {
         LOG_ERR("Could not system name info to the log!");
     }
 
+#if CONFIG_APP_PRIMARY_IMU_MPU6050
     const char main_imu_name_key[] = "char[7] main_imu_name";
     const char main_imu_name[] = "MPU6050";
+#elif CONFIG_APP_PRIMARY_IMU_ICM42688P
+    const char main_imu_name_key[] = "char[9] main_imu_name";
+    const char main_imu_name[] = "ICM42688P";
+#endif
     if (ULOG_AddInfo(&ulog_log, main_imu_name_key, strlen(main_imu_name_key),
                      main_imu_name, strlen(main_imu_name))) {
         LOG_ERR("Could not main IMU info to the log!");

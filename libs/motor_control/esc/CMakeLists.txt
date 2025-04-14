@@ -27,9 +27,8 @@ set(SOURCES
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 target_include_directories(${PROJECT_NAME}
-SYSTEM PUBLIC
+PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${ZEPHYR_BASE}/include
 )
 
 target_link_libraries(${PROJECT_NAME}

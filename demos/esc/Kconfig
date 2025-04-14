@@ -1,10 +1,25 @@
-mainmenu "Eurus Flight Controller"
+# ESC (Electronic Speed Controller) demo configuration
 
-config APP_DATA_LOGGING_SYNC_INTERVAL
-	int "Data logging Sync interval [ms]"
-	default 1000
-	help
-		This configures the interval at which the logging system flushes everything to disk
-		and hence determines the maximum duration of data lost on power cuts.
+mainmenu "Eurus Flight Controller - ESC demo"
 
-source "Kconfig.zephyr"
+
+# ESC Protocol configuration
+choice
+    prompt "ESC Protocol Selection"
+    default ESC_PWM
+
+config ESC_PWM
+    bool "ESC PWM protocol"
+
+config ESC_ONESHOT_125
+    bool "ESC Oneshot125 protocol"
+
+config ESC_ONESHOT_42
+    bool "ESC Oneshot42 protocol"
+
+config ESC_MULTISHOT
+    bool "ESC Multishot protocol"
+
+endchoice
+
+source "../efc/libs/motor_control/esc/Kconfig"

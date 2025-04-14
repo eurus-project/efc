@@ -63,7 +63,7 @@ struct fs_mount_t main_fs_mount = {
     .mnt_point = "/SD:",
 };
 
-uint32_t boot_count = 0;
+int32_t boot_count = -1;
 
 struct k_pipe telemetry_ground_pipe;
 static uint8_t telemetry_ground_pipe_data[1024];
@@ -148,6 +148,13 @@ static int process_imu(const struct device *dev) {
     return 0;
 }
 
+#ifdef CONFIG_ICM42688_TRIGGER
+static void handle_icm42688p_drdy(const struct device *dev,
+                                  const struct sensor_trigger *trig) {
+    process_imu(dev);
+}
+#endif
+
 static int process_baro(const struct device *dev) {
     int ret = sensor_sample_fetch(dev);
     if (ret < 0) {
@@ -185,6 +192,49 @@ static int process_baro(const struct device *dev) {
     return 0;
 }
 
+static int update_boot_count(void) {
+    struct fs_file_t boot_count_file;
+    fs_file_t_init(&boot_count_file);
+
+    char filename[LFS_NAME_MAX];
+    snprintf(filename, sizeof(filename), "%s/boot_count",
+             main_fs_mount.mnt_point);
+    int ret = fs_open(&boot_count_file, filename, FS_O_RDWR | FS_O_CREATE);
+    if (ret < 0) {
+        LOG_ERR("Could not open file!\n");
+        return ret;
+    }
+
+    ret = fs_read(&boot_count_file, &boot_count, sizeof(boot_count));
+    if (ret < 0) {
+        LOG_ERR("Could not read from file!\n");
+        return ret;
+    }
+
+    LOG_INF("Boot count: %d\n", (int)boot_count);
+
+    ret = fs_seek(&boot_count_file, 0, FS_SEEK_SET);
+    if (ret < 0) {
+        LOG_ERR("Could not seek to beggining of the file!\n");
+        return ret;
+    }
+
+    boot_count += 1;
+    ret = fs_write(&boot_count_file, &boot_count, sizeof(boot_count));
+    if (ret < 0) {
+        LOG_ERR("Could not write to file!\n");
+        return ret;
+    }
+
+    ret = fs_close(&boot_count_file);
+    if (ret < 0) {
+        LOG_ERR("Could not close file!\n");
+        return ret;
+    }
+
+    return 0;
+}
+
 int main(void) {
     if (DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)) {
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
@@ -210,7 +260,32 @@ int main(void) {
         return 0;
     }
 
-    const struct device *const main_imu = DEVICE_DT_GET(DT_NODELABEL(main_imu));
+    bool main_imu_using_trigger = false;
+
+#if CONFIG_APP_PRIMARY_IMU_MPU6050
+    const struct device *const main_imu =
+        DEVICE_DT_GET(DT_NODELABEL(imu_mpu6050));
+#elif CONFIG_APP_PRIMARY_IMU_ICM42688P
+    const struct device *const main_imu =
+        DEVICE_DT_GET(DT_NODELABEL(imu_icm42688p));
+
+#ifdef CONFIG_ICM42688_TRIGGER
+    struct sensor_trigger icm42688p_trigger = {.type = SENSOR_TRIG_DATA_READY,
+                                               .chan = SENSOR_CHAN_ALL};
+
+    ret =
+        sensor_trigger_set(main_imu, &icm42688p_trigger, handle_icm42688p_drdy);
+    if (ret < 0) {
+        LOG_ERR("Could not configure IMU trigger.\n");
+        return 0;
+    }
+
+    main_imu_using_trigger = true;
+#endif
+#else
+    LOG_ERR("IMU Device not selected!");
+    return 0;
+#endif
 
     if (!device_is_ready(main_imu)) {
         LOG_ERR("Device %s is not ready\n", main_imu->name);
@@ -227,47 +302,12 @@ int main(void) {
     ret = fs_mount(&main_fs_mount);
     if (ret < 0) {
         LOG_ERR("Could not mount filesystem!\n");
-        return 0;
     }
 
-    struct fs_file_t boot_count_file;
-    fs_file_t_init(&boot_count_file);
-
-    char filename[LFS_NAME_MAX];
-    snprintf(filename, sizeof(filename), "%s/boot_count",
-             main_fs_mount.mnt_point);
-    ret = fs_open(&boot_count_file, filename, FS_O_RDWR | FS_O_CREATE);
+    ret = update_boot_count();
     if (ret < 0) {
-        LOG_ERR("Could not open file!\n");
-        return 0;
+        LOG_ERR("Could not update boot count!");
     }
-
-    ret = fs_read(&boot_count_file, &boot_count, sizeof(boot_count));
-    if (ret < 0) {
-        LOG_ERR("Could not read from file!\n");
-        return 0;
-    }
-
-    ret = fs_seek(&boot_count_file, 0, FS_SEEK_SET);
-    if (ret < 0) {
-        LOG_ERR("Could not seek to beggining of the file!\n");
-        return 0;
-    }
-
-    boot_count += 1;
-    ret = fs_write(&boot_count_file, &boot_count, sizeof(boot_count));
-    if (ret < 0) {
-        LOG_ERR("Could not write to file!\n");
-        return 0;
-    }
-
-    ret = fs_close(&boot_count_file);
-    if (ret < 0) {
-        LOG_ERR("Could not close file!\n");
-        return 0;
-    }
-
-    LOG_INF("Boot count: %d\n", (int)boot_count);
 
     k_pipe_init(&telemetry_ground_pipe, telemetry_ground_pipe_data,
                 sizeof(telemetry_ground_pipe_data));
@@ -297,7 +337,8 @@ int main(void) {
             return 0;
         }
 
-        process_imu(main_imu);
+        if (!main_imu_using_trigger)
+            process_imu(main_imu);
 
         process_baro(main_baro);
 

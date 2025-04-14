@@ -76,34 +76,44 @@ int main(void) {
         return 0;
     }
 
-    int ret;
-    ret = gpio_pin_configure_dt(&fw_running_led, GPIO_OUTPUT_ACTIVE);
+    int ret = gpio_pin_configure_dt(&fw_running_led, GPIO_OUTPUT_ACTIVE);
     if (ret < 0) {
         LOG_ERR("Could not configure the firmware running LED as output");
         return 0;
     }
 
     /* ESC Initialization */
-    status_t status;
-    esc_t esc1;
+    ESC_Error_Type status;
+    ESC_Inst_Type esc1;
+    ESC_Protocol_Type protocol;
+
+#if CONFIG_ESC_PWM
+    protocol = ESC_PWM;
+#elif CONFIG_ESC_ONESHOT_125
+    protocol = ESC_ONESHOT_125;
+#elif CONFIG_ESC_ONESHOT_42
+    protocol = ESC_ONESHOT_42;
+#elif CONFIG_ESC_MULTISHOT
+    protocol = ESC_MULTISHOT;
+#endif
 
     const struct device *pwm_dev = DEVICE_DT_GET(DT_NODELABEL(pwm1));
 
     if (!device_is_ready(pwm_dev))
         return;
 
-    status = ESC_Init(pwm_dev, 1, ESC_PWM, &esc1);
+    status = ESC_Init(&esc1, pwm_dev, 1, protocol);
     if (status < 0)
         return;
 
     /* Arming procedure */
-    printk("[ESC]: Arming...\n");
+    printk("ESC Arming...\n");
 
     status = ESC_Arm(&esc1);
     if (status < 0) {
         return;
     } else {
-        printk("[ESC]: Armed.\n");
+        printk("ESC Armed.\n");
         for (int i = 0; i < 10; i++) {
             gpio_pin_toggle_dt(&fw_running_led);
             k_msleep(ESC_ARMED_INDICATOR_MS);
@@ -112,12 +122,12 @@ int main(void) {
 
     while (1) {
 
-        for (int i = 0; i < 100; i += 10) {
+        for (float i = 0.0f; i < 1.0f; i += 0.1f) {
             gpio_pin_toggle_dt(&fw_running_led);
             ESC_SetSpeed(&esc1, i);
             k_msleep(ESC_SPEED_CHANGE_MS);
         }
-        for (int i = 100; i > 0; i -= 10) {
+        for (float i = 1.0f; i > 0.0f; i -= 0.1f) {
             gpio_pin_toggle_dt(&fw_running_led);
             ESC_SetSpeed(&esc1, i);
             k_msleep(ESC_SPEED_CHANGE_MS);
