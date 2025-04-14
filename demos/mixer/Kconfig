@@ -1,0 +1,25 @@
+# MIXER demo configuration
+
+mainmenu "Eurus Flight Controller - MIXER demo"
+
+
+# MIXER Unmanned aerial vehicle geometrical configuration
+choice
+    prompt "MIXER UAV geometrical configuration"
+    default MIXER_UAV_QUADROTOR_X
+
+config MIXER_UAV_QUADROTOR_X
+    bool "UAV quadrotor 'X' configuration"
+
+config MIXER_UAV_QUADROTOR_CROSS
+    bool "UAV quadrotor '+' configuration"
+
+config MIXER_UAV_HEXAROTOR_X
+    bool "UAV hexarotor 'X' configuration"
+
+config MIXER_UAV_HEXAROTOR_X
+    bool "UAV hexarotor 'X' configuration"
+
+endchoice
+
+source "../efc/libs/motor_control/mixer/Kconfig"

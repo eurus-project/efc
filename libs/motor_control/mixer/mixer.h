@@ -24,14 +24,13 @@
 #ifndef MIXER_H
 #define MIXER_H
 
-/********************************** Includes **********************************/
 #include "esc.h"
 #include <stdio.h>
 #include <zephyr/kernel.h>
 
 typedef enum {
     MIXER_SUCCESS = 0,
-    MIXER_ERROR,
+    MIXER_ESC_ERROR,
 } MIXER_Error_Type;
 
 typedef enum {
