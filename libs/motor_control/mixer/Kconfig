@@ -1,0 +1,4 @@
+# There should be impemented some Kconfig that will be used for MIXER library
+# configuration
+
+source "Kconfig.zephyr"

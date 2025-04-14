@@ -21,10 +21,10 @@
 
 #define MAX_MOTOR_INSTANCES 6
 
-MIXER_Error_Type MIXER_AddMotorInstance(ESC_Inst_Type *esc, mixer_t *mixer) {
+MIXER_Error_Type MIXER_AddMotorInstance(ESC_Inst_Type *esc,
+                                        MIXER_Inst_Type *mixer) {
     if (esc->flag != ESC_INITIALIZED) {
-        printk("Error(mixer): Cannot add motor instance, esc not initialized!");
-        return -1;
+        return MIXER_ESC_ERROR;
     }
 
     static uint8_t motor_count = 0;
@@ -36,17 +36,16 @@ MIXER_Error_Type MIXER_AddMotorInstance(ESC_Inst_Type *esc, mixer_t *mixer) {
     } else if (mixer->motor_instances < MAX_MOTOR_INSTANCES) {
         mixer->motor_instances++;
     } else {
-        printk(
-            "Error(mixer): Cannot exceed maximum number of motor instances!");
-        return -1;
+        return MIXER_ESC_ERROR;
     }
 
     motor_count++;
 
-    return 0;
+    return MIXER_SUCCESS;
 }
 
-MIXER_Error_Type MIXER_Init(mixer_t *mixer, mixer_uav_cfg_t uav_cfg) {
+MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
+                            MIXER_UAV_Cfg_Type uav_cfg) {
     /* Add necessary checks here ... */
 
     /* UAV geometrical configuration will be fixed to quadrotor X configuration
@@ -54,10 +53,11 @@ MIXER_Error_Type MIXER_Init(mixer_t *mixer, mixer_uav_cfg_t uav_cfg) {
        for support of multiple UAV geometrical configurations. */
     mixer->uav_config = uav_cfg;
 
-    return 0;
+    return MIXER_SUCCESS;
 }
 
-MIXER_Error_Type MIXER_Execute(mixer_t *mixer, mixer_input_t *mix_in) {
+MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
+                               MIXER_Input_Type *mix_in) {
     /* Quadrotor X multirotor configuration fixed  */
     uint8_t m1 = 0, m2 = 0, m3 = 0, m4 = 0;
     status_t esc_status;
@@ -74,19 +74,13 @@ MIXER_Error_Type MIXER_Execute(mixer_t *mixer, mixer_input_t *mix_in) {
     default:
         break;
     }
-    /* Set calculated motor speeds */
-    esc_status = ESC_SetSpeed(&mixer->motor_arr[0], m1);
-    if (esc_status < 0)
-        return -1;
-    esc_status = ESC_SetSpeed(&mixer->motor_arr[1], m2);
-    if (esc_status < 0)
-        return -1;
-    esc_status = ESC_SetSpeed(&mixer->motor_arr[2], m3);
-    if (esc_status < 0)
-        return -1;
-    esc_status = ESC_SetSpeed(&mixer->motor_arr[3], m4);
-    if (esc_status < 0)
-        return -1;
 
-    return 0;
+    /* Set calculated motor speeds */
+    for (int i = 0, i < mixer->motor_instances, i++) {
+        esc_status = ESC_SetSpeed(&mixer->motor_arr[i], m1);
+        if (esc_status < 0)
+            return MIXER_ESC_ERROR;
+    }
+
+    return ESC_SUCCESS;
 }
