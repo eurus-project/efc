@@ -1,0 +1,32 @@
+# ESC (Electronic Speed Controller) library configuration options
+
+menuconfig ESC
+    bool "Electronic Speed Controller (ESC) library"
+    help 
+        Enable support for the ESC library.
+
+if ESC
+
+# Manual minimum pulse offset of ESC signal
+config ESC_MANUAL_MIN_PULSE_OFFSET
+    bool "Enable manual minimum thrust offset for ESC"
+
+config ESC_MIN_PULSE_OFFSET_PERCENT
+    int "Duty cycle offset in percentage"
+    default 30
+    depends on ESC_MANUAL_MIN_PULSE_OFFSET
+
+# Manual maximum pulse offset of ESC signal
+config ESC_MANUAL_MAX_PULSE_OFFSET
+    bool "Enable manual maximum thrust offset for ESC"
+
+config ESC_MAX_PULSE_OFFSET_PERCENT
+    int "Duty cycle offset in percentage"
+    default 0
+    depends on ESC_MANUAL_MAX_PULSE_OFFSET
+
+
+endif # ESC
+
+
+source "Kconfig.zephyr"
