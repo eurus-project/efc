@@ -29,39 +29,37 @@
 #include <stdio.h>
 #include <zephyr/kernel.h>
 
-/*********************************** Defines **********************************/
-#define MAX_MOTOR_INSTANCES 6
-
-/*********************************** Macros ***********************************/
-
-/*********************************** Typedefs *********************************/
-typedef int mix_status_t;
+typedef enum {
+    MIXER_SUCCESS = 0,
+    MIXER_ERROR,
+} MIXER_Error_Type;
 
 typedef enum {
     MIXER_UAV_CFG_QUADROTOR_X = 0,
     MIXER_UAV_CFG_QUADROTOR_CROSS,
     MIXER_UAV_CFG_HEXAROTOR_X,
     MIXER_UAV_CFG_HEXAROTOR_CROSS
-} mixer_uav_cfg_t;
+} MIXER_UAV_Cfg_Type;
 
 typedef struct {
     uint8_t thrust;
     uint8_t roll;
     uint8_t pitch;
     uint8_t yaw;
-} mixer_input_t;
+} MIXER_Input_Type;
 
 typedef struct {
-    esc_t motor_arr[MAX_MOTOR_INSTANCES];
+    ESC_Inst_Type motor_arr[MAX_MOTOR_INSTANCES];
     uint8_t motor_instances;
-    mixer_uav_cfg_t uav_config;
-} mixer_t;
+    MIXER_UAV_Cfg_Type uav_config;
+} MIXER_Inst_Type;
 
-/********************************** Functions *********************************/
-mix_status_t MIXER_AddMotorInstance(esc_t *esc, mixer_t *mixer);
+MIXER_Error_Type MIXER_AddMotorInstance(ESC_Inst_Type *esc,
+                                        MIXER_Inst_Type *mixer);
 
-mix_status_t MIXER_Init(mixer_t *mixer, mixer_uav_cfg_t uav_cfg);
+MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer, MIXER_UAV_Cfg_Type uav_cfg);
 
-mix_status_t MIXER_Execute(mixer_t *mixer, mixer_input_t *mixer_in);
+MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
+                               MIXER_Input_Type *mixer_in);
 
 #endif

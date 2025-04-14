@@ -15,19 +15,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file   mixer.c
- * @brief  Library for motor mixing in multirotors.
- * @author eurus-projects
- */
-
-/********************************** Includes **********************************/
 #include "mixer.h"
 #include <stdio.h>
 #include <zephyr/kernel.h>
 
-/********************************** Functions *********************************/
-mix_status_t MIXER_AddMotorInstance(esc_t *esc, mixer_t *mixer) {
+#define MAX_MOTOR_INSTANCES 6
+
+MIXER_Error_Type MIXER_AddMotorInstance(ESC_Inst_Type *esc, mixer_t *mixer) {
     if (esc->flag != ESC_INITIALIZED) {
         printk("Error(mixer): Cannot add motor instance, esc not initialized!");
         return -1;
@@ -52,7 +46,7 @@ mix_status_t MIXER_AddMotorInstance(esc_t *esc, mixer_t *mixer) {
     return 0;
 }
 
-mix_status_t MIXER_Init(mixer_t *mixer, mixer_uav_cfg_t uav_cfg) {
+MIXER_Error_Type MIXER_Init(mixer_t *mixer, mixer_uav_cfg_t uav_cfg) {
     /* Add necessary checks here ... */
 
     /* UAV geometrical configuration will be fixed to quadrotor X configuration
@@ -63,7 +57,7 @@ mix_status_t MIXER_Init(mixer_t *mixer, mixer_uav_cfg_t uav_cfg) {
     return 0;
 }
 
-mix_status_t MIXER_Execute(mixer_t *mixer, mixer_input_t *mix_in) {
+MIXER_Error_Type MIXER_Execute(mixer_t *mixer, mixer_input_t *mix_in) {
     /* Quadrotor X multirotor configuration fixed  */
     uint8_t m1 = 0, m2 = 0, m3 = 0, m4 = 0;
     status_t esc_status;
