@@ -45,7 +45,14 @@ typedef struct {
     int32_t roll;
     int32_t pitch;
     int32_t yaw;
-} MIXER_Input_Type;
+} MIXER_Raw_Input_Type;
+
+typedef struct {
+    float thrust;
+    float roll;
+    float pitch;
+    float yaw;
+} MIXER_Mapped_Input_Type;
 
 typedef struct {
     ESC_Inst_Type motor_arr[MAX_MOTOR_INSTANCES];
@@ -59,6 +66,6 @@ MIXER_Error_Type MIXER_AddMotorInstance(MIXER_Inst_Type *mixer,
 MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer, MIXER_UAV_Cfg_Type uav_cfg);
 
 MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
-                               MIXER_Input_Type *mixer_in);
+                               MIXER_Raw_Input_Type *mixer_in);
 
 #endif

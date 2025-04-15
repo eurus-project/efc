@@ -20,6 +20,11 @@
 #include <zephyr/kernel.h>
 
 #define MAX_MOTOR_INSTANCES 6
+#define MIXER_RECEIVER_DEFAULT_MIN_VALUE 0.0f
+#define MIXER_RECEIVER_DEFAULT_MAX_VALUE 2047.0f
+
+static void MapReceiverValues(MIXER_Raw_Input_Type *mixer_in,
+                              MIXER_Mapped_Input_Type *mixer_mapped);
 
 MIXER_Error_Type MIXER_AddMotorInstance(MIXER_Inst_Type *mixer,
                                         ESC_Inst_Type *esc) {
@@ -57,7 +62,7 @@ MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
 }
 
 MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
-                               MIXER_Input_Type *mix_in) {
+                               MIXER_Raw_Input_Type *mix_in) {
     /* Quadrotor X multirotor configuration fixed  */
     uint8_t m1 = 0, m2 = 0, m3 = 0, m4 = 0;
     status_t esc_status;
@@ -83,4 +88,10 @@ MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
     }
 
     return ESC_SUCCESS;
+}
+
+static void MapReceiverValues(MIXER_Raw_Input_Type *mixer_raw,
+                              MIXER_Mapped_Input_Type *mixer_mapped) {
+    /* TODO: Implement remapping of the raw input receiver values here, but with
+    consideration of Kconfig values of minimal and maximal raw input values. */
 }
