@@ -150,6 +150,7 @@ int main(void) {
     mixer_uav_geom_cfg = MIXER_UAV_CFG_HEXAROTOR_X;
 #elif CONFIG_MIXER_UAV_HEXAROTOR_CROSS
     mixer_uav_geom_cfg = MIXER_UAV_CFG_HEXAROTOR_CROSS;
+#endif
 
     if (MIXER_AddMotorInstance(&mixer, &esc1) != MIXER_SUCCESS)
         return;

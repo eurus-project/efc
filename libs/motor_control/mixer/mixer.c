@@ -19,7 +19,6 @@
 #include <stdio.h>
 #include <zephyr/kernel.h>
 
-#define MAX_MOTOR_INSTANCES 6
 #define MIXER_RECEIVER_DEFAULT_MIN_VALUE 0.0f
 #define MIXER_RECEIVER_DEFAULT_MAX_VALUE 2047.0f
 
@@ -28,7 +27,7 @@ static void MapReceiverValues(MIXER_Raw_Input_Type *mixer_in,
 
 MIXER_Error_Type MIXER_AddMotorInstance(MIXER_Inst_Type *mixer,
                                         ESC_Inst_Type *esc) {
-    if (esc->flag != ESC_INITIALIZED) {
+    if (!esc->initialized) {
         return MIXER_ESC_ERROR;
     }
 
@@ -65,7 +64,7 @@ MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
                                MIXER_Raw_Input_Type *mix_in) {
     /* Quadrotor X multirotor configuration fixed  */
     uint8_t m1 = 0, m2 = 0, m3 = 0, m4 = 0;
-    status_t esc_status;
+    ESC_Error_Type esc_status;
 
     // TODO: Add checks here for edge-cases like R=P=0 and Y>T
     switch (mixer->uav_config) {
@@ -81,7 +80,7 @@ MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
     }
 
     /* Set calculated motor speeds */
-    for (int i = 0, i < mixer->motor_instances, i++) {
+    for (int i = 0; i < mixer->motor_instances; i++) {
         esc_status = ESC_SetSpeed(&mixer->motor_arr[i], m1);
         if (esc_status < 0)
             return MIXER_ESC_ERROR;
