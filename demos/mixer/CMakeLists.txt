@@ -33,4 +33,5 @@ PRIVATE
 target_link_libraries(app
 PRIVATE
     esc
+    mixer
 )

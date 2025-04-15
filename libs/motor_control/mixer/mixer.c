@@ -21,8 +21,8 @@
 
 #define MAX_MOTOR_INSTANCES 6
 
-MIXER_Error_Type MIXER_AddMotorInstance(ESC_Inst_Type *esc,
-                                        MIXER_Inst_Type *mixer) {
+MIXER_Error_Type MIXER_AddMotorInstance(MIXER_Inst_Type *mixer,
+                                        ESC_Inst_Type *esc) {
     if (esc->flag != ESC_INITIALIZED) {
         return MIXER_ESC_ERROR;
     }

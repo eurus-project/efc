@@ -29,4 +29,6 @@ config ESC_MAX_PULSE_OFFSET_PERCENT
 endif # ESC
 
 
-source "Kconfig.zephyr"
+# NOTE: This should be sourced only inside Kconfig from the actual application,
+# not inside libraries-related Kconfigs
+#source "Kconfig.zephyr"
