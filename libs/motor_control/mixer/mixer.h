@@ -41,10 +41,10 @@ typedef enum {
 } MIXER_UAV_Cfg_Type;
 
 typedef struct {
-    uint8_t thrust;
-    uint8_t roll;
-    uint8_t pitch;
-    uint8_t yaw;
+    int32_t thrust;
+    int32_t roll;
+    int32_t pitch;
+    int32_t yaw;
 } MIXER_Input_Type;
 
 typedef struct {
@@ -53,8 +53,8 @@ typedef struct {
     MIXER_UAV_Cfg_Type uav_config;
 } MIXER_Inst_Type;
 
-MIXER_Error_Type MIXER_AddMotorInstance(ESC_Inst_Type *esc,
-                                        MIXER_Inst_Type *mixer);
+MIXER_Error_Type MIXER_AddMotorInstance(MIXER_Inst_Type *mixer,
+                                        ESC_Inst_Type *esc);
 
 MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer, MIXER_UAV_Cfg_Type uav_cfg);
 

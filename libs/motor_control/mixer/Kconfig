@@ -1,4 +1,33 @@
 # There should be impemented some Kconfig that will be used for MIXER library
 # configuration
 
-source "Kconfig.zephyr"
+menuconfig MIXER
+    bool "Drone motor mixing library"
+    help 
+        Enable support for mixer library
+
+if MIXER
+
+# Manual minimum receiver data offset
+config MIXER_MINIMAL_RECEIVER_DATA_OFFSET
+    bool "Enable minimal receiver data offset"
+
+config MIXER_MINIMAL_RECEIVER_DATA_VALUE
+    int "Value that represents 'zero' value - minimal value"
+    default 0
+    depends on MIXER_MINIMAL_RECEIVER_DATA_OFFSET
+
+# Manual maximum receiver data offset
+config MIXER_MAXIMAL_RECEIVER_DATA_OFFSET
+    bool "Enable maximal receiver data offset"
+
+config MIXER_MAXIMAL_RECEIVER_DATA_VALUE
+    int "Value that represents 'max' value - maximal value"
+    default 2047
+    depends on MIXER_MAXIMAL_RECEIVER_DATA_OFFSET
+
+endif # MIXER
+
+# NOTE: This should be sourced only inside Kconfig from the actual application,
+# not inside libraries-related Kconfigs
+#source "Kconfig.zephyr"

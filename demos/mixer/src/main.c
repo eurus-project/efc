@@ -26,6 +26,7 @@
 #include <zephyr/usb/usbd.h>
 
 #include "esc.h"
+#include "mixer.h"
 
 LOG_MODULE_REGISTER(main);
 
@@ -84,7 +85,7 @@ int main(void) {
 
     /* ESC Initialization */
     ESC_Error_Type status;
-    ESC_Inst_Type esc1;
+    ESC_Inst_Type esc1, esc2, esc3, esc4;
     ESC_Protocol_Type protocol;
 
 #if CONFIG_ESC_PWM
@@ -102,25 +103,69 @@ int main(void) {
     if (!device_is_ready(pwm_dev))
         return;
 
-    status = ESC_Init(&esc1, pwm_dev, 1, protocol);
+    status = ESC_Init(&esc1, pwm_dev, 1, protocol); // Motor 1 ESC
+    if (status < 0)
+        return;
+    status = ESC_Init(&esc2, pwm_dev, 2, protocol); // Motor 2 ESC
+    if (status < 0)
+        return;
+    status = ESC_Init(&esc3, pwm_dev, 3, protocol); // Motor 3 ESC
+    if (status < 0)
+        return;
+    status = ESC_Init(&esc4, pwm_dev, 4, protocol); // Motor 4 ESC
     if (status < 0)
         return;
 
     /* Arming procedure */
     printk("ESC Arming...\n");
 
-    status = ESC_Arm(&esc1);
-    if (status < 0) {
+    status = ESC_Arm(&esc1); // Motor 1 ESC
+    if (status < 0)
         return;
-    } else {
-        printk("ESC Armed.\n");
-        for (int i = 0; i < 10; i++) {
-            gpio_pin_toggle_dt(&fw_running_led);
-            k_msleep(ESC_ARMED_INDICATOR_MS);
-        }
+    status = ESC_Arm(&esc2); // Motor 2 ESC
+    if (status < 0)
+        return;
+    status = ESC_Arm(&esc3); // Motor 3 ESC
+    if (status < 0)
+        return;
+    status = ESC_Arm(&esc4); // Motor 4 ESC
+    if (status < 0)
+        return;
+
+    printk("ESC's has been armed.\n");
+    for (int i = 0; i < 10; i++) {
+        gpio_pin_toggle_dt(&fw_running_led);
+        k_msleep(ESC_ARMED_INDICATOR_MS);
     }
 
+    /* Mixer initialization */
+    MIXER_Inst_Type mixer;
+    MIXER_UAV_Cfg_Type mixer_uav_geom_cfg;
+
+#if CONFIG_MIXER_UAV_QUADROTOR_X
+    mixer_uav_geom_cfg = MIXER_UAV_CFG_QUADROTOR_X;
+#elif CONFIG_MIXER_UAV_QUADROTOR_CROSS
+    mixer_uav_geom_cfg = MIXER_UAV_CFG_QUADROTOR_CROSS;
+#elif CONFIG_MIXER_UAV_HEXAROTOR_X
+    mixer_uav_geom_cfg = MIXER_UAV_CFG_HEXAROTOR_X;
+#elif CONFIG_MIXER_UAV_HEXAROTOR_CROSS
+    mixer_uav_geom_cfg = MIXER_UAV_CFG_HEXAROTOR_CROSS;
+
+    if (MIXER_AddMotorInstance(&mixer, &esc1) != MIXER_SUCCESS)
+        return;
+    if (MIXER_AddMotorInstance(&mixer, &esc2) != MIXER_SUCCESS)
+        return;
+    if (MIXER_AddMotorInstance(&mixer, &esc3) != MIXER_SUCCESS)
+        return;
+    if (MIXER_AddMotorInstance(&mixer, &esc4) != MIXER_SUCCESS)
+        return;
+
+    if (MIXER_Init(&mixer, mixer_uav_geom_cfg) != MIXER_SUCCESS)
+        return;
+
     while (1) {
+
+        /* TODO: Change this according to the MIXER-specific testing */
 
         for (float i = 0.0f; i < 1.0f; i += 0.1f) {
             gpio_pin_toggle_dt(&fw_running_led);
