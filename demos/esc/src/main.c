@@ -102,7 +102,7 @@ int main(void) {
     if (!device_is_ready(pwm_dev))
         return;
 
-    status = ESC_Init(&esc1, pwm_dev, 1, protocol);
+    status = ESC_Init(&esc1, pwm_dev, 4, protocol);
     if (status < 0)
         return;
 
