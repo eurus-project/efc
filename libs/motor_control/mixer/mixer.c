@@ -63,7 +63,7 @@ MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
 MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
                                MIXER_Raw_Input_Type *mixer_raw) {
     /* Quadrotor X multirotor configuration fixed  */
-    uint8_t m1 = 0, m2 = 0, m3 = 0, m4 = 0;
+    float m1 = 0, m2 = 0, m3 = 0, m4 = 0;
     ESC_Error_Type esc_status;
     MIXER_Mapped_Input_Type mixer_mapped;
 
@@ -86,16 +86,16 @@ MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
     default:
         break;
     }
-    esc_status = ESC_SetSpeed(&mixer->motor_arr[0], m1); // This is a mistake
+    esc_status = ESC_SetSpeed(&mixer->motor_arr[0], m1);
     if (esc_status < 0)
         return MIXER_ESC_ERROR;
-    esc_status = ESC_SetSpeed(&mixer->motor_arr[1], m2); // This is a mistake
+    esc_status = ESC_SetSpeed(&mixer->motor_arr[1], m2);
     if (esc_status < 0)
         return MIXER_ESC_ERROR;
-    esc_status = ESC_SetSpeed(&mixer->motor_arr[2], m3); // This is a mistake
+    esc_status = ESC_SetSpeed(&mixer->motor_arr[2], m3);
     if (esc_status < 0)
         return MIXER_ESC_ERROR;
-    esc_status = ESC_SetSpeed(&mixer->motor_arr[3], m4); // This is a mistake
+    esc_status = ESC_SetSpeed(&mixer->motor_arr[3], m4);
     if (esc_status < 0)
         return MIXER_ESC_ERROR;
 
@@ -119,6 +119,7 @@ static void MapReceiverValues(MIXER_Raw_Input_Type *mixer_raw,
 #else
     max_receiver_val = MIXER_RECEIVER_DEFAULT_MAX_VALUE;
 #endif
+
                            mixer_mapped->roll =
         (1.0 / (max_receiver_val - min_receiver_val)) *
         (mixer_raw->roll - min_receiver_val);
@@ -129,6 +130,6 @@ static void MapReceiverValues(MIXER_Raw_Input_Type *mixer_raw,
     mixer_mapped->yaw = (1.0 / (max_receiver_val - min_receiver_val)) *
                         (mixer_raw->yaw - min_receiver_val);
 
-    mixer_mapped->roll = (1.0 / (max_receiver_val - min_receiver_val)) *
-                         (mixer_raw->thrust - min_receiver_val);
+    mixer_mapped->thrust = (1.0 / (max_receiver_val - min_receiver_val)) *
+                           (mixer_raw->thrust - min_receiver_val);
 }

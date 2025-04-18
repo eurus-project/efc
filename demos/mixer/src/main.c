@@ -31,7 +31,7 @@
 LOG_MODULE_REGISTER(main);
 
 #define ESC_ARMED_INDICATOR_MS 100
-#define MIXER_TIME_INCREMENT 100
+#define MIXER_TIME_INCREMENT 2
 
 // This LED simply blinks at an interval, indicating visually that the firmware
 // is running If anything causes the whole firmware to abort, it will be
@@ -58,6 +58,13 @@ static int enable_usb_device_next(void) {
     return 0;
 }
 #endif /* defined(CONFIG_USB_DEVICE_STACK_NEXT) */
+
+static void reset_mixer_vals(MIXER_Raw_Input_Type *mixer) {
+    mixer->pitch = 0;
+    mixer->roll = 0;
+    mixer->thrust = 0;
+    mixer->yaw = 0;
+}
 
 int main(void) {
     if (DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)) {
@@ -177,40 +184,42 @@ int main(void) {
     while (1) {
         // Roll
         printk("Roll angle:");
-        raw_receiver_input.roll = 1000;
-        MIXER_Execute(&mixer, &raw_receiver_input);
+        reset_mixer_vals(&raw_receiver_input);
         k_msleep(MIXER_TIME_INCREMENT * 10);
         for (int i = 0; i < 2047; i++) {
             raw_receiver_input.roll = i;
             MIXER_Execute(&mixer, &raw_receiver_input);
-            k_msleep(MIXER_TIME_INCREMENT / 20);
+            k_msleep(MIXER_TIME_INCREMENT);
         }
 
         // Pitch
         printk("Pitch angle:");
+        reset_mixer_vals(&raw_receiver_input);
         k_msleep(MIXER_TIME_INCREMENT * 10);
         for (int i = 0; i < 2047; i++) {
             raw_receiver_input.pitch = i;
             MIXER_Execute(&mixer, &raw_receiver_input);
-            k_msleep(MIXER_TIME_INCREMENT / 20);
+            k_msleep(MIXER_TIME_INCREMENT);
         }
 
         // Yaw
         printk("Yaw angle:");
+        reset_mixer_vals(&raw_receiver_input);
         k_msleep(MIXER_TIME_INCREMENT * 10);
         for (int i = 0; i < 2047; i++) {
             raw_receiver_input.yaw = i;
             MIXER_Execute(&mixer, &raw_receiver_input);
-            k_msleep(MIXER_TIME_INCREMENT / 20);
+            k_msleep(MIXER_TIME_INCREMENT);
         }
 
         // Thrust
         printk("Thrust:");
+        reset_mixer_vals(&raw_receiver_input);
         k_msleep(MIXER_TIME_INCREMENT * 10);
         for (int i = 0; i < 2047; i++) {
             raw_receiver_input.thrust = i;
             MIXER_Execute(&mixer, &raw_receiver_input);
-            k_msleep(MIXER_TIME_INCREMENT / 20);
+            k_msleep(MIXER_TIME_INCREMENT);
         }
     }
 

@@ -15,18 +15,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/ {
-	chosen {
-		zephyr,console = &cdc_acm_uart;
-	};
-};
-
-&zephyr_udc0 {
-	cdc_acm_uart: cdc_acm_uart0 {
-		compatible = "zephyr,cdc-acm-uart";
-	};
-};
-
 &timers1 {
 	status = "okay";
 	st,prescaler = <24>;
