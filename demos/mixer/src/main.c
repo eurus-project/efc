@@ -30,8 +30,8 @@
 
 LOG_MODULE_REGISTER(main);
 
-#define ESC_SPEED_CHANGE_MS 1000
 #define ESC_ARMED_INDICATOR_MS 100
+#define MIXER_TIME_INCREMENT 100
 
 // This LED simply blinks at an interval, indicating visually that the firmware
 // is running If anything causes the whole firmware to abort, it will be
@@ -83,11 +83,23 @@ int main(void) {
         return 0;
     }
 
-    /* ESC Initialization */
+    /* ESC variables */
     ESC_Error_Type status;
     ESC_Inst_Type esc1, esc2, esc3, esc4;
     ESC_Protocol_Type protocol;
 
+    /* MIXER variables */
+    MIXER_Inst_Type mixer;
+    MIXER_UAV_Cfg_Type mixer_uav_geom_cfg;
+
+    /* Demo test variables */
+    MIXER_Raw_Input_Type raw_receiver_input;
+    raw_receiver_input.roll = 0;
+    raw_receiver_input.pitch = 0;
+    raw_receiver_input.yaw = 0;
+    raw_receiver_input.thrust = 0;
+
+    /* ESC Initialization */
 #if CONFIG_ESC_PWM
     protocol = ESC_PWM;
 #elif CONFIG_ESC_ONESHOT_125
@@ -101,36 +113,36 @@ int main(void) {
     const struct device *pwm_dev = DEVICE_DT_GET(DT_NODELABEL(pwm1));
 
     if (!device_is_ready(pwm_dev))
-        return;
+        return 0;
 
     status = ESC_Init(&esc1, pwm_dev, 1, protocol); // Motor 1 ESC
-    if (status < 0)
-        return;
+    if (status != ESC_SUCCESS)
+        return 0;
     status = ESC_Init(&esc2, pwm_dev, 2, protocol); // Motor 2 ESC
-    if (status < 0)
-        return;
+    if (status != ESC_SUCCESS)
+        return 0;
     status = ESC_Init(&esc3, pwm_dev, 3, protocol); // Motor 3 ESC
-    if (status < 0)
-        return;
+    if (status != ESC_SUCCESS)
+        return 0;
     status = ESC_Init(&esc4, pwm_dev, 4, protocol); // Motor 4 ESC
-    if (status < 0)
-        return;
+    if (status != ESC_SUCCESS)
+        return 0;
 
     /* Arming procedure */
     printk("ESC Arming...\n");
 
     status = ESC_Arm(&esc1); // Motor 1 ESC
-    if (status < 0)
-        return;
+    if (status != ESC_SUCCESS)
+        return 0;
     status = ESC_Arm(&esc2); // Motor 2 ESC
-    if (status < 0)
-        return;
+    if (status != ESC_SUCCESS)
+        return 0;
     status = ESC_Arm(&esc3); // Motor 3 ESC
-    if (status < 0)
-        return;
+    if (status != ESC_SUCCESS)
+        return 0;
     status = ESC_Arm(&esc4); // Motor 4 ESC
-    if (status < 0)
-        return;
+    if (status != ESC_SUCCESS)
+        return 0;
 
     printk("ESC's has been armed.\n");
     for (int i = 0; i < 10; i++) {
@@ -139,8 +151,6 @@ int main(void) {
     }
 
     /* Mixer initialization */
-    MIXER_Inst_Type mixer;
-    MIXER_UAV_Cfg_Type mixer_uav_geom_cfg;
 
 #if CONFIG_MIXER_UAV_QUADROTOR_X
     mixer_uav_geom_cfg = MIXER_UAV_CFG_QUADROTOR_X;
@@ -153,30 +163,54 @@ int main(void) {
 #endif
 
     if (MIXER_AddMotorInstance(&mixer, &esc1) != MIXER_SUCCESS)
-        return;
+        return 0;
     if (MIXER_AddMotorInstance(&mixer, &esc2) != MIXER_SUCCESS)
-        return;
+        return 0;
     if (MIXER_AddMotorInstance(&mixer, &esc3) != MIXER_SUCCESS)
-        return;
+        return 0;
     if (MIXER_AddMotorInstance(&mixer, &esc4) != MIXER_SUCCESS)
-        return;
+        return 0;
 
     if (MIXER_Init(&mixer, mixer_uav_geom_cfg) != MIXER_SUCCESS)
-        return;
+        return 0;
 
     while (1) {
-
-        /* TODO: Change this according to the MIXER-specific testing */
-
-        for (float i = 0.0f; i < 1.0f; i += 0.1f) {
-            gpio_pin_toggle_dt(&fw_running_led);
-            ESC_SetSpeed(&esc1, i);
-            k_msleep(ESC_SPEED_CHANGE_MS);
+        // Roll
+        printk("Roll angle:");
+        raw_receiver_input.roll = 1000;
+        MIXER_Execute(&mixer, &raw_receiver_input);
+        k_msleep(MIXER_TIME_INCREMENT * 10);
+        for (int i = 0; i < 2047; i++) {
+            raw_receiver_input.roll = i;
+            MIXER_Execute(&mixer, &raw_receiver_input);
+            k_msleep(MIXER_TIME_INCREMENT / 20);
         }
-        for (float i = 1.0f; i > 0.0f; i -= 0.1f) {
-            gpio_pin_toggle_dt(&fw_running_led);
-            ESC_SetSpeed(&esc1, i);
-            k_msleep(ESC_SPEED_CHANGE_MS);
+
+        // Pitch
+        printk("Pitch angle:");
+        k_msleep(MIXER_TIME_INCREMENT * 10);
+        for (int i = 0; i < 2047; i++) {
+            raw_receiver_input.pitch = i;
+            MIXER_Execute(&mixer, &raw_receiver_input);
+            k_msleep(MIXER_TIME_INCREMENT / 20);
+        }
+
+        // Yaw
+        printk("Yaw angle:");
+        k_msleep(MIXER_TIME_INCREMENT * 10);
+        for (int i = 0; i < 2047; i++) {
+            raw_receiver_input.yaw = i;
+            MIXER_Execute(&mixer, &raw_receiver_input);
+            k_msleep(MIXER_TIME_INCREMENT / 20);
+        }
+
+        // Thrust
+        printk("Thrust:");
+        k_msleep(MIXER_TIME_INCREMENT * 10);
+        for (int i = 0; i < 2047; i++) {
+            raw_receiver_input.thrust = i;
+            MIXER_Execute(&mixer, &raw_receiver_input);
+            k_msleep(MIXER_TIME_INCREMENT / 20);
         }
     }
 

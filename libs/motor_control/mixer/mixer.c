@@ -61,30 +61,43 @@ MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
 }
 
 MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
-                               MIXER_Raw_Input_Type *mix_in) {
+                               MIXER_Raw_Input_Type *mixer_raw) {
     /* Quadrotor X multirotor configuration fixed  */
     uint8_t m1 = 0, m2 = 0, m3 = 0, m4 = 0;
     ESC_Error_Type esc_status;
+    MIXER_Mapped_Input_Type mixer_mapped;
+
+    /* Remapping the raw values to ESC-compatible ones */
+    MapReceiverValues(mixer_raw, &mixer_mapped);
 
     // TODO: Add checks here for edge-cases like R=P=0 and Y>T
     switch (mixer->uav_config) {
     case MIXER_UAV_CFG_QUADROTOR_X:
-        m1 = mix_in->thrust - mix_in->roll + mix_in->pitch + mix_in->yaw;
-        m2 = mix_in->thrust + mix_in->roll - mix_in->pitch + mix_in->yaw;
-        m3 = mix_in->thrust + mix_in->roll + mix_in->pitch - mix_in->yaw;
-        m4 = mix_in->thrust - mix_in->roll - mix_in->pitch - mix_in->yaw;
+        m1 = mixer_mapped.thrust - mixer_mapped.roll + mixer_mapped.pitch +
+             mixer_mapped.yaw;
+        m2 = mixer_mapped.thrust + mixer_mapped.roll - mixer_mapped.pitch +
+             mixer_mapped.yaw;
+        m3 = mixer_mapped.thrust + mixer_mapped.roll + mixer_mapped.pitch -
+             mixer_mapped.yaw;
+        m4 = mixer_mapped.thrust - mixer_mapped.roll - mixer_mapped.pitch -
+             mixer_mapped.yaw;
         break;
 
     default:
         break;
     }
-
-    /* Set calculated motor speeds */
-    for (int i = 0; i < mixer->motor_instances; i++) {
-        esc_status = ESC_SetSpeed(&mixer->motor_arr[i], m1);
-        if (esc_status < 0)
-            return MIXER_ESC_ERROR;
-    }
+    esc_status = ESC_SetSpeed(&mixer->motor_arr[0], m1); // This is a mistake
+    if (esc_status < 0)
+        return MIXER_ESC_ERROR;
+    esc_status = ESC_SetSpeed(&mixer->motor_arr[1], m2); // This is a mistake
+    if (esc_status < 0)
+        return MIXER_ESC_ERROR;
+    esc_status = ESC_SetSpeed(&mixer->motor_arr[2], m3); // This is a mistake
+    if (esc_status < 0)
+        return MIXER_ESC_ERROR;
+    esc_status = ESC_SetSpeed(&mixer->motor_arr[3], m4); // This is a mistake
+    if (esc_status < 0)
+        return MIXER_ESC_ERROR;
 
     return ESC_SUCCESS;
 }
@@ -93,4 +106,29 @@ static void MapReceiverValues(MIXER_Raw_Input_Type *mixer_raw,
                               MIXER_Mapped_Input_Type *mixer_mapped) {
     /* TODO: Implement remapping of the raw input receiver values here, but with
     consideration of Kconfig values of minimal and maximal raw input values. */
+    uint32_t min_receiver_val, max_receiver_val;
+
+#ifdef CONFIG_MIXER_MINIMAL_RECEIVER_DATA_OFFSET
+    min_receiver_val = CONFIG_MIXER_MINIMAL_RECEIVER_DATA_VALUE;
+#else
+    min_receiver_val = MIXER_RECEIVER_DEFAULT_MIN_VALUE;
+#endif
+
+#ifdef CONFIG_MIXER_MAXIMAL_RECEIVER_DATA_OFFSET
+    max_receiver_val = CONFIG_MIXER_MAXIMAL_RECEIVER_DATA_VALUE
+#else
+    max_receiver_val = MIXER_RECEIVER_DEFAULT_MAX_VALUE;
+#endif
+                           mixer_mapped->roll =
+        (1.0 / (max_receiver_val - min_receiver_val)) *
+        (mixer_raw->roll - min_receiver_val);
+
+    mixer_mapped->pitch = (1.0 / (max_receiver_val - min_receiver_val)) *
+                          (mixer_raw->pitch - min_receiver_val);
+
+    mixer_mapped->yaw = (1.0 / (max_receiver_val - min_receiver_val)) *
+                        (mixer_raw->yaw - min_receiver_val);
+
+    mixer_mapped->roll = (1.0 / (max_receiver_val - min_receiver_val)) *
+                         (mixer_raw->thrust - min_receiver_val);
 }
