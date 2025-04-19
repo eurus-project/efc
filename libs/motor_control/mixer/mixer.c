@@ -21,9 +21,13 @@
 
 #define MIXER_RECEIVER_DEFAULT_MIN_VALUE 0.0f
 #define MIXER_RECEIVER_DEFAULT_MAX_VALUE 2047.0f
+#define MIXER_RECEIVER_DEFAULT_NEUTRAL_VALUE 1024.0f
 
 static void MapReceiverValues(MIXER_Raw_Input_Type *mixer_in,
                               MIXER_Mapped_Input_Type *mixer_mapped);
+
+static void normalize_stick_input(const MIXER_Raw_Input_Type *mixer_raw,
+                                  MIXER_Mapped_Input_Type *mixer_mapped);
 
 MIXER_Error_Type MIXER_AddMotorInstance(MIXER_Inst_Type *mixer,
                                         ESC_Inst_Type *esc) {
@@ -68,7 +72,8 @@ MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
     MIXER_Mapped_Input_Type mixer_mapped;
 
     /* Remapping the raw values to ESC-compatible ones */
-    MapReceiverValues(mixer_raw, &mixer_mapped);
+    // MapReceiverValues(mixer_raw, &mixer_mapped);
+    normalize_stick_input(mixer_raw, &mixer_mapped);
 
     // TODO: Add checks here for edge-cases like R=P=0 and Y>T
     switch (mixer->uav_config) {
@@ -106,7 +111,7 @@ static void MapReceiverValues(MIXER_Raw_Input_Type *mixer_raw,
                               MIXER_Mapped_Input_Type *mixer_mapped) {
     /* TODO: Implement remapping of the raw input receiver values here, but with
     consideration of Kconfig values of minimal and maximal raw input values. */
-    uint32_t min_receiver_val, max_receiver_val;
+    uint32_t min_receiver_val, max_receiver_val, neutral_receiver_val;
 
 #ifdef CONFIG_MIXER_MINIMAL_RECEIVER_DATA_OFFSET
     min_receiver_val = CONFIG_MIXER_MINIMAL_RECEIVER_DATA_VALUE;
@@ -120,7 +125,13 @@ static void MapReceiverValues(MIXER_Raw_Input_Type *mixer_raw,
     max_receiver_val = MIXER_RECEIVER_DEFAULT_MAX_VALUE;
 #endif
 
-                           mixer_mapped->roll =
+#ifdef CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_OFFSET
+        neutral_receiver_val = CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_VALUE
+#else
+    neutral_receiver_val = MIXER_RECEIVER_DEFAULT_NEUTRAL_VALUE;
+#endif
+    /*
+    mixer_mapped->roll =
         (1.0 / (max_receiver_val - min_receiver_val)) *
         (mixer_raw->roll - min_receiver_val);
 
@@ -132,4 +143,94 @@ static void MapReceiverValues(MIXER_Raw_Input_Type *mixer_raw,
 
     mixer_mapped->thrust = (1.0 / (max_receiver_val - min_receiver_val)) *
                            (mixer_raw->thrust - min_receiver_val);
+    */
+}
+
+static void normalize_stick_input(const MIXER_Raw_Input_Type *mixer_raw,
+                                  MIXER_Mapped_Input_Type *mixer_mapped) {
+    uint32_t min_receiver_val, max_receiver_val, neutral_receiver_val;
+
+#ifdef CONFIG_MIXER_MINIMAL_RECEIVER_DATA_OFFSET
+    min_receiver_val = CONFIG_MIXER_MINIMAL_RECEIVER_DATA_VALUE;
+#else
+    min_receiver_val = MIXER_RECEIVER_DEFAULT_MIN_VALUE;
+#endif
+
+#ifdef CONFIG_MIXER_MAXIMAL_RECEIVER_DATA_OFFSET
+    max_receiver_val = CONFIG_MIXER_MAXIMAL_RECEIVER_DATA_VALUE
+#else
+    max_receiver_val = MIXER_RECEIVER_DEFAULT_MAX_VALUE;
+#endif
+
+#ifdef CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_OFFSET
+        neutral_receiver_val = CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_VALUE
+#else
+    neutral_receiver_val = MIXER_RECEIVER_DEFAULT_NEUTRAL_VALUE;
+#endif
+        /* Map raw roll values:
+            [min_receiver_val, neutral_receiver_val] -> [-1.0, 0.0] and
+            [neutral_receiver_val, max_receiver_val] -> [0.0, 1.0]
+        */
+        if (mixer_raw->roll < neutral_receiver_val) {
+        mixer_mapped->roll = (float)(mixer_raw->roll - neutral_receiver_val) /
+                             (float)(neutral_receiver_val - min_receiver_val);
+    }
+    else {
+        mixer_mapped->roll = (float)(mixer_raw->roll - neutral_receiver_val) /
+                             (float)(max_receiver_val - neutral_receiver_val);
+    }
+
+    // Clamp calculated values
+    if (mixer_mapped->roll < -1.0f)
+        mixer_mapped->roll = -1.0f;
+    if (mixer_mapped->roll > 1.0f)
+        mixer_mapped->roll = 1.0f;
+
+    /* Map raw pitch values:
+        [min_receiver_val, neutral_receiver_val] -> [-1.0, 0.0] and
+        [neutral_receiver_val, max_receiver_val] -> [0.0, 1.0]
+    */
+    if (mixer_raw->pitch < neutral_receiver_val) {
+        mixer_mapped->pitch = (float)(mixer_raw->pitch - neutral_receiver_val) /
+                              (float)(neutral_receiver_val - min_receiver_val);
+    } else {
+        mixer_mapped->pitch = (float)(mixer_raw->pitch - neutral_receiver_val) /
+                              (float)(max_receiver_val - neutral_receiver_val);
+    }
+
+    // Clamp calculated values
+    if (mixer_mapped->pitch < -1.0f)
+        mixer_mapped->pitch = -1.0f;
+    if (mixer_mapped->pitch > 1.0f)
+        mixer_mapped->pitch = 1.0f;
+
+    /* Map raw yaw values:
+        [min_receiver_val, neutral_receiver_val] -> [-1.0, 0.0] and
+        [neutral_receiver_val, max_receiver_val] -> [0.0, 1.0]
+    */
+    if (mixer_raw->yaw < neutral_receiver_val) {
+        mixer_mapped->yaw = (float)(mixer_raw->yaw - neutral_receiver_val) /
+                            (float)(neutral_receiver_val - min_receiver_val);
+    } else {
+        mixer_mapped->yaw = (float)(mixer_raw->yaw - neutral_receiver_val) /
+                            (float)(max_receiver_val - neutral_receiver_val);
+    }
+
+    // Clamp calculated values
+    if (mixer_mapped->yaw < -1.0f)
+        mixer_mapped->yaw = -1.0f;
+    if (mixer_mapped->yaw > 1.0f)
+        mixer_mapped->yaw = 1.0f;
+
+    /* Map raw thrust values:
+        [min_receiver_val, max_receiver_val] -> [0.0, 1.0]
+    */
+    mixer_mapped->thrust = (float)(mixer_raw->thrust - min_receiver_val) /
+                           (float)(max_receiver_val - min_receiver_val);
+
+    // Clamp calculated values
+    if (mixer_mapped->thrust < -1.0f)
+        mixer_mapped->thrust = -1.0f;
+    if (mixer_mapped->thrust > 1.0f)
+        mixer_mapped->thrust = 1.0f;
 }
