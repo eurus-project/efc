@@ -23,9 +23,6 @@
 #define MIXER_RECEIVER_DEFAULT_MAX_VALUE 2047.0f
 #define MIXER_RECEIVER_DEFAULT_NEUTRAL_VALUE 1024.0f
 
-static void MapReceiverValues(MIXER_Raw_Input_Type *mixer_in,
-                              MIXER_Mapped_Input_Type *mixer_mapped);
-
 static void normalize_stick_input(const MIXER_Raw_Input_Type *mixer_raw,
                                   MIXER_Mapped_Input_Type *mixer_mapped);
 
@@ -107,48 +104,9 @@ MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
     return ESC_SUCCESS;
 }
 
-static void MapReceiverValues(MIXER_Raw_Input_Type *mixer_raw,
-                              MIXER_Mapped_Input_Type *mixer_mapped) {
-    /* TODO: Implement remapping of the raw input receiver values here, but with
-    consideration of Kconfig values of minimal and maximal raw input values. */
-    uint32_t min_receiver_val, max_receiver_val, neutral_receiver_val;
-
-#ifdef CONFIG_MIXER_MINIMAL_RECEIVER_DATA_OFFSET
-    min_receiver_val = CONFIG_MIXER_MINIMAL_RECEIVER_DATA_VALUE;
-#else
-    min_receiver_val = MIXER_RECEIVER_DEFAULT_MIN_VALUE;
-#endif
-
-#ifdef CONFIG_MIXER_MAXIMAL_RECEIVER_DATA_OFFSET
-    max_receiver_val = CONFIG_MIXER_MAXIMAL_RECEIVER_DATA_VALUE
-#else
-    max_receiver_val = MIXER_RECEIVER_DEFAULT_MAX_VALUE;
-#endif
-
-#ifdef CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_OFFSET
-        neutral_receiver_val = CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_VALUE
-#else
-    neutral_receiver_val = MIXER_RECEIVER_DEFAULT_NEUTRAL_VALUE;
-#endif
-    /*
-    mixer_mapped->roll =
-        (1.0 / (max_receiver_val - min_receiver_val)) *
-        (mixer_raw->roll - min_receiver_val);
-
-    mixer_mapped->pitch = (1.0 / (max_receiver_val - min_receiver_val)) *
-                          (mixer_raw->pitch - min_receiver_val);
-
-    mixer_mapped->yaw = (1.0 / (max_receiver_val - min_receiver_val)) *
-                        (mixer_raw->yaw - min_receiver_val);
-
-    mixer_mapped->thrust = (1.0 / (max_receiver_val - min_receiver_val)) *
-                           (mixer_raw->thrust - min_receiver_val);
-    */
-}
-
 static void normalize_stick_input(const MIXER_Raw_Input_Type *mixer_raw,
                                   MIXER_Mapped_Input_Type *mixer_mapped) {
-    uint32_t min_receiver_val, max_receiver_val, neutral_receiver_val;
+    int32_t min_receiver_val, max_receiver_val, neutral_receiver_val;
 
 #ifdef CONFIG_MIXER_MINIMAL_RECEIVER_DATA_OFFSET
     min_receiver_val = CONFIG_MIXER_MINIMAL_RECEIVER_DATA_VALUE;
@@ -167,6 +125,7 @@ static void normalize_stick_input(const MIXER_Raw_Input_Type *mixer_raw,
 #else
     neutral_receiver_val = MIXER_RECEIVER_DEFAULT_NEUTRAL_VALUE;
 #endif
+
         /* Map raw roll values:
             [min_receiver_val, neutral_receiver_val] -> [-1.0, 0.0] and
             [neutral_receiver_val, max_receiver_val] -> [0.0, 1.0]

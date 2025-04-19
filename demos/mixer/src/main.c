@@ -60,10 +60,17 @@ static int enable_usb_device_next(void) {
 #endif /* defined(CONFIG_USB_DEVICE_STACK_NEXT) */
 
 static void reset_mixer_vals(MIXER_Raw_Input_Type *mixer) {
-    mixer->pitch = 0;
-    mixer->roll = 0;
-    mixer->thrust = 0;
-    mixer->yaw = 0;
+    int32_t neutral_receiver_val;
+    int32_t thrust_val_50_percent = 1024;
+#ifdef CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_OFFSET
+    neutral_receiver_val = CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_VALUE
+#else
+    neutral_receiver_val = 1024;
+#endif
+                               mixer->roll = neutral_receiver_val;
+    mixer->pitch = neutral_receiver_val;
+    mixer->yaw = neutral_receiver_val;
+    mixer->thrust = thrust_val_50_percent;
 }
 
 int main(void) {
@@ -186,7 +193,12 @@ int main(void) {
         printk("Roll angle:");
         reset_mixer_vals(&raw_receiver_input);
         k_msleep(MIXER_TIME_INCREMENT * 10);
-        for (int i = 0; i < 2047; i++) {
+        for (int i = 1024; i < 2047; i++) {
+            raw_receiver_input.roll = i;
+            MIXER_Execute(&mixer, &raw_receiver_input);
+            k_msleep(MIXER_TIME_INCREMENT);
+        }
+        for (int i = 2047; i > 0; i--) {
             raw_receiver_input.roll = i;
             MIXER_Execute(&mixer, &raw_receiver_input);
             k_msleep(MIXER_TIME_INCREMENT);
@@ -196,7 +208,12 @@ int main(void) {
         printk("Pitch angle:");
         reset_mixer_vals(&raw_receiver_input);
         k_msleep(MIXER_TIME_INCREMENT * 10);
-        for (int i = 0; i < 2047; i++) {
+        for (int i = 1024; i < 2047; i++) {
+            raw_receiver_input.pitch = i;
+            MIXER_Execute(&mixer, &raw_receiver_input);
+            k_msleep(MIXER_TIME_INCREMENT);
+        }
+        for (int i = 2047; i > 0; i--) {
             raw_receiver_input.pitch = i;
             MIXER_Execute(&mixer, &raw_receiver_input);
             k_msleep(MIXER_TIME_INCREMENT);
@@ -206,7 +223,12 @@ int main(void) {
         printk("Yaw angle:");
         reset_mixer_vals(&raw_receiver_input);
         k_msleep(MIXER_TIME_INCREMENT * 10);
-        for (int i = 0; i < 2047; i++) {
+        for (int i = 1024; i < 2047; i++) {
+            raw_receiver_input.yaw = i;
+            MIXER_Execute(&mixer, &raw_receiver_input);
+            k_msleep(MIXER_TIME_INCREMENT);
+        }
+        for (int i = 2047; i > 0; i--) {
             raw_receiver_input.yaw = i;
             MIXER_Execute(&mixer, &raw_receiver_input);
             k_msleep(MIXER_TIME_INCREMENT);
@@ -217,6 +239,11 @@ int main(void) {
         reset_mixer_vals(&raw_receiver_input);
         k_msleep(MIXER_TIME_INCREMENT * 10);
         for (int i = 0; i < 2047; i++) {
+            raw_receiver_input.thrust = i;
+            MIXER_Execute(&mixer, &raw_receiver_input);
+            k_msleep(MIXER_TIME_INCREMENT);
+        }
+        for (int i = 2047; i > 0; i--) {
             raw_receiver_input.thrust = i;
             MIXER_Execute(&mixer, &raw_receiver_input);
             k_msleep(MIXER_TIME_INCREMENT);
