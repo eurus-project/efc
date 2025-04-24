@@ -78,7 +78,12 @@
 };
 
 &i2c1 {
-	imu_mpu6050: mpu6050@68 {
+    pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
+    pinctrl-names = "default";
+    status = "okay";
+    clock-frequency = <I2C_BITRATE_FAST>;
+
+    imu_mpu6050: mpu6050@68 {
 		compatible = "invensense,mpu6050";
 		reg = <0x68>;
 		status = "okay";
