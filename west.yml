@@ -2,10 +2,12 @@ manifest:
   remotes:
     - name: eurus-project
       url-base: https://github.com/eurus-project
+    - name: upstream-zephyr
+      url-base: https://github.com/zephyrproject-rtos
   projects:
     - name: zephyr
-      remote: eurus-project
-      revision: boards/weact_stm32h562_core
+      remote: upstream-zephyr
+      revision: main
       import: true
   self:
     path: efc
