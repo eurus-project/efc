@@ -33,6 +33,7 @@
 };
 
 &spi1 {
+    status = "okay";
     cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
 
 	sdhc0: sdhc@0 {
@@ -46,6 +47,10 @@
                 };
                 spi-max-frequency = <24000000>;
         };
+};
+
+&clk_hsi48 {
+    status = "okay";
 };
 
 &spi2 {
