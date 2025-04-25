@@ -1,0 +1,6 @@
+# ESC (Electronic Speed Controller) demo configuration
+
+mainmenu "Eurus Flight Controller - SD Card demo"
+
+
+source "Kconfig.zephyr"
