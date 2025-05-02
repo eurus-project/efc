@@ -40,7 +40,7 @@ struct fs_mount_t main_fs_mount = {
     .type = FS_LITTLEFS,
     .fs_data = &main_fs,
     .flags = FS_MOUNT_FLAG_USE_DISK_ACCESS,
-    .storage_dev = "SD",
+    .storage_dev = "SD_SPI",
     .mnt_point = "/SD:",
 };
 
@@ -109,6 +109,37 @@ static int update_boot_count(void) {
     return 0;
 }
 
+static int create_demo_file(void) {
+    struct fs_file_t demo_file;
+    const char demo_data[] = "This is a demo test message from EFC";
+
+    fs_file_t_init(&demo_file);
+
+    char filename[LFS_NAME_MAX];
+    snprintf(filename, sizeof(filename), "%s/demo_file.txt",
+             main_fs_mount.mnt_point);
+
+    int ret = fs_open(&demo_file, filename, FS_O_RDWR | FS_O_CREATE);
+    if (ret < 0) {
+        LOG_ERR("Could not open file!\n");
+        return ret;
+    }
+
+    ret = fs_write(&demo_file, &demo_data, sizeof(demo_data));
+    if (ret < 0) {
+        LOG_ERR("Could not write to file!\n");
+        return ret;
+    }
+
+    ret = fs_close(&demo_file);
+    if (ret < 0) {
+        LOG_ERR("Could not close file!\n");
+        return ret;
+    }
+
+    return 0;
+}
+
 int main(void) {
     if (DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)) {
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
@@ -142,6 +173,11 @@ int main(void) {
     ret = update_boot_count();
     if (ret < 0) {
         LOG_ERR("Could not update boot count!");
+    }
+
+    ret = create_demo_file();
+    if (ret < 0) {
+        LOG_ERR("Could not create demo file!");
     }
 
     while (1) {
