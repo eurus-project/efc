@@ -59,7 +59,7 @@ struct fs_mount_t main_fs_mount = {
     .type = FS_LITTLEFS,
     .fs_data = &main_fs,
     .flags = FS_MOUNT_FLAG_USE_DISK_ACCESS,
-    .storage_dev = "SD",
+    .storage_dev = "SD_SPI",
     .mnt_point = "/SD:",
 };
 
