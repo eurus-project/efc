@@ -24,6 +24,10 @@
 	};
 };
 
+&pll {
+	div-q = <6>;
+};
+
 &zephyr_udc0 {
 	cdc_acm_uart: cdc_acm_uart0 {
 		compatible = "zephyr,cdc-acm-uart";
@@ -40,7 +44,7 @@
                 status = "okay";
                 mmc {
                     compatible = "zephyr,sdmmc-disk";
-                    disk-name = "SD";
+                    disk-name = "SD_SPI";
                     status = "okay";
                 };
                 spi-max-frequency = <24000000>;
