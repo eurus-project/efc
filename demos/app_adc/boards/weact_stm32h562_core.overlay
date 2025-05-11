@@ -27,7 +27,7 @@
 	};
 
     zephyr,user {
-        io-channels = <&adc1 0>;
+        io-channels = <&adc1 13>;
     };
 };
 
@@ -115,16 +115,9 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-    channel@0 {
+    channel@13 {
+        pinctrl-0 = <&adc1_inp13_pc3>;
         reg = <0>;
-		zephyr,gain = "ADC_GAIN_1";
-		zephyr,reference = "ADC_REF_INTERNAL";
-		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
-		zephyr,resolution = <12>;
-    };
-
-    channel@1 {
-        reg = <1>;
 		zephyr,gain = "ADC_GAIN_1";
 		zephyr,reference = "ADC_REF_INTERNAL";
 		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
