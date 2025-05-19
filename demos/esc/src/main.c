@@ -103,15 +103,15 @@ int main(void) {
         return;
 
     status = ESC_Init(&esc1, pwm_dev, 1, protocol);
-    if (status < 0)
-        return;
+    if (status != ESC_SUCCESS)
+        return 0;
 
     /* Arming procedure */
     printk("ESC Arming...\n");
 
     status = ESC_Arm(&esc1);
-    if (status < 0) {
-        return;
+    if (status != ESC_SUCCESS) {
+        return 0;
     } else {
         printk("ESC Armed.\n");
         for (int i = 0; i < 10; i++) {
