@@ -43,10 +43,11 @@ west build -b blackpill_f411ce app
 
 
 ## Contributing
-
 The `efc` project uses code formatting rules described in `.clang-format`.
 To ensure automatic code formatting, use [pre-commit](https://pre-commit.com/) and install hooks:
 
 ```bash
 pre-commit install
 ```
+
+When creating variables that represent physical units, unit suffixes must be added to their names (e.g. `pulse_duration_us`, `temp_degc`, `gyro_x_radps`).
