@@ -1,0 +1,23 @@
+[
+    {
+        "include": [
+            "app/src/*.c",
+            "app/src/*.h",
+            "libs/logging/ulog/*.c",
+            "libs/logging/ulog/*.h",
+            "libs/telemetry/mavlink/*.c"
+        ],
+        "license": "./.github/license-checks/license-header-cc.txt"
+    },
+    {
+        "include": [
+            "CMakeLists.txt",
+            "app/CMakeLists.txt",
+            "libs/logging/CMakeLists.txt",
+            "libs/logging/ulog/CMakeLists.txt",
+            "libs/telemetry/CMakeLists.txt",
+            "libs/telemetry/mavlink/CMakeLists.txt"
+        ],
+        "license": "./.github/license-checks/license-header-cmake.txt"
+    }
+]
