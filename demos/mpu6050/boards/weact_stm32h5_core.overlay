@@ -1,0 +1,53 @@
+/*
+ * This file is part of the efc project <https://github.com/eurus-project/efc/>.
+ * Copyright (c) 2024 The efc developers.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <zephyr/dt-bindings/sensor/icm42688.h>
+
+/ {
+	chosen {
+		zephyr,console = &cdc_acm_uart;
+        zephyr,shell-uart = &cdc_acm_uart;
+	};
+};
+
+&pll {
+	div-q = <6>;
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+&clk_hsi48 {
+    status = "okay";
+};
+
+&i2c1 {
+    pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
+    pinctrl-names = "default";
+    status = "okay";
+    clock-frequency = <I2C_BITRATE_FAST>;
+
+    imu_mpu6050: mpu6050@68 {
+		compatible = "invensense,mpu6050";
+		reg = <0x68>;
+		status = "okay";
+		int-gpios = <&gpiob 8 GPIO_ACTIVE_HIGH>;
+	};
+};
