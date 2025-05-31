@@ -1,0 +1,6 @@
+# MPU6050 demo configuration
+
+mainmenu "Eurus Flight Controller - MPU6050 demo"
+
+
+source "Kconfig.zephyr"
