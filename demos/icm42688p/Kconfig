@@ -1,0 +1,6 @@
+# ICM42688P demo configuration
+
+mainmenu "Eurus Flight Controller - ICM42688P demo"
+
+
+source "Kconfig.zephyr"

@@ -1,4 +1,4 @@
-# ESC (Electronic Speed Controller) demo configuration
+# SD card demo configuration
 
 mainmenu "Eurus Flight Controller - SD Card demo"
 
