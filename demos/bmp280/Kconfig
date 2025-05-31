@@ -1,0 +1,6 @@
+# BMP280 demo configuration
+
+mainmenu "Eurus Flight Controller - BMP280 demo"
+
+
+source "Kconfig.zephyr"
