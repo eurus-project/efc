@@ -1,0 +1,53 @@
+/*
+ * This file is part of the efc project <https://github.com/eurus-project/efc/>.
+ * Copyright (c) 2024 The efc developers.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <zephyr/dt-bindings/sensor/icm42688.h>
+
+/ {
+	chosen {
+		zephyr,console = &cdc_acm_uart;
+		zephyr,shell-uart = &cdc_acm_uart;
+	};
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+&spi2 {
+    status = "okay";
+    pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15>;
+    pinctrl-names = "default";
+    cs-gpios = <&gpiob 10 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+
+    imu_icm42688p: icm42688@1 {
+        compatible = "invensense,icm42688";
+        reg = <0>;
+        status = "okay";
+        label = "ICM42688P";
+        spi-max-frequency = <1000000>;
+        int-gpios = <&gpioa 0 GPIO_ACTIVE_HIGH>;
+        accel-pwr-mode = <ICM42688_DT_ACCEL_LN>;
+        accel-fs = <ICM42688_DT_ACCEL_FS_16>;
+        accel-odr = <ICM42688_DT_ACCEL_ODR_50>;
+        gyro-pwr-mode= <ICM42688_DT_GYRO_LN>;
+        gyro-fs = <ICM42688_DT_GYRO_FS_2000>;
+        gyro-odr = <ICM42688_DT_GYRO_ODR_50>;
+	};
+};
