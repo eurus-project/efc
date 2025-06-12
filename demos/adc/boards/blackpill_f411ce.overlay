@@ -20,18 +20,10 @@
 / {
 	chosen {
 		zephyr,console = &cdc_acm_uart;
-        zephyr,shell-uart = &cdc_acm_uart;
+		zephyr,shell-uart = &cdc_acm_uart;
 		telemetry,ground = &usart1;
-        futaba,sbus = &sbus_usart;
+		futaba,sbus = &sbus_usart;
 	};
-};
-
-&pll {
-	div-q = <6>;
-};
-
-&clk_hsi48 {
-    status = "okay";
 };
 
 &zephyr_udc0 {
@@ -41,7 +33,6 @@
 };
 
 &spi1 {
-    status = "okay";
     cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
 
 	sdhc0: sdhc@0 {
@@ -50,7 +41,7 @@
                 status = "okay";
                 mmc {
                     compatible = "zephyr,sdmmc-disk";
-                    disk-name = "SD_SPI";
+                    disk-name = "SD";
                     status = "okay";
                 };
                 spi-max-frequency = <24000000>;
@@ -59,10 +50,10 @@
 
 &spi2 {
     status = "okay";
-    pinctrl-0 = <&spi2_sck_pb10 &spi2_miso_pc2 &spi2_mosi_pc1>;
+    pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15>;
     pinctrl-names = "default";
-    cs-gpios = <&gpiob 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>,
-               <&gpioa 1 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+    cs-gpios = <&gpiob 12 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>,
+               <&gpiob 10 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
     bme280@0 {
         compatible = "bosch,bme280";
@@ -76,7 +67,7 @@
         status = "okay";
         label = "ICM42688P";
         spi-max-frequency = <1000000>;
-        int-gpios = <&gpioc 0 GPIO_ACTIVE_HIGH>;
+        int-gpios = <&gpioa 0 GPIO_ACTIVE_HIGH>;
         accel-pwr-mode = <ICM42688_DT_ACCEL_LN>;
         accel-fs = <ICM42688_DT_ACCEL_FS_16>;
         accel-odr = <ICM42688_DT_ACCEL_ODR_50>;
@@ -87,16 +78,11 @@
 };
 
 &i2c1 {
-    pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
-    pinctrl-names = "default";
-    status = "okay";
-    clock-frequency = <I2C_BITRATE_FAST>;
-
-    imu_mpu6050: mpu6050@68 {
+	imu_mpu6050: mpu6050@68 {
 		compatible = "invensense,mpu6050";
 		reg = <0x68>;
 		status = "okay";
-		int-gpios = <&gpiob 8 GPIO_ACTIVE_HIGH>;
+		int-gpios = <&gpiob 7 GPIO_ACTIVE_HIGH>;
 	};
 };
 
@@ -127,23 +113,5 @@
             type = <INPUT_EV_ABS>;
             zephyr,code = <INPUT_ABS_RZ>;
         };
-    };
-};
-
-&adc1 {
-    compatible = "st,stm32-adc";
-	st,adc-clock-source = "SYNC";
-	st,adc-prescaler = <4>;
-    status = "okay";
-    
-	#address-cells = <1>;
-	#size-cells = <0>;
-
-    channel@13 {
-        reg = <13>;
-		zephyr,gain = "ADC_GAIN_1";
-		zephyr,reference = "ADC_REF_INTERNAL";
-		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
-		zephyr,resolution = <12>;
     };
 };

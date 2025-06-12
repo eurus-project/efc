@@ -1,0 +1,58 @@
+/*
+ * This file is part of the efc project <https://github.com/eurus-project/efc/>.
+ * Copyright (c) 2024 The efc developers.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/ {
+	chosen {
+		zephyr,console = &cdc_acm_uart;
+	};
+
+    zephyr,user {
+        io-channels = <&adc1 13>;
+    };
+};
+
+&pll {
+	div-q = <6>;
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+&adc1 {
+    compatible = "st,stm32-adc";
+	st,adc-clock-source = "SYNC";
+	st,adc-prescaler = <4>;
+    status = "okay";
+    
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+    channel@13 {
+        reg = <13>;
+		zephyr,gain = "ADC_GAIN_1";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,resolution = <12>;
+    };
+};
+
+&clk_hsi48 {
+    status = "okay";
+};
