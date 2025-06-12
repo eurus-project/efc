@@ -38,7 +38,7 @@
 &adc1 {
     compatible = "st,stm32-adc";
 	st,adc-clock-source = "SYNC";
-	st,adc-prescaler = <1>;
+	st,adc-prescaler = <4>;
     status = "okay";
     
 	#address-cells = <1>;
