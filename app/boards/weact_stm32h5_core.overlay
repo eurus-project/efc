@@ -129,3 +129,21 @@
         };
     };
 };
+
+&adc1 {
+    compatible = "st,stm32-adc";
+	st,adc-clock-source = "SYNC";
+	st,adc-prescaler = <4>;
+    status = "okay";
+    
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+    channel@13 {
+        reg = <13>;
+		zephyr,gain = "ADC_GAIN_1";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,resolution = <12>;
+    };
+};
