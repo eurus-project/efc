@@ -15,7 +15,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <zephyr/dt-bindings/sensor/icm42688.h>
 
 / {
 	chosen {
@@ -28,6 +27,10 @@
 	div-q = <6>;
 };
 
+&clk_hsi48 {
+    status = "okay";
+};
+
 &zephyr_udc0 {
 	cdc_acm_uart: cdc_acm_uart0 {
 		compatible = "zephyr,cdc-acm-uart";
@@ -38,15 +41,11 @@
     status = "okay";
     pinctrl-0 = <&spi2_sck_pb10 &spi2_miso_pc2 &spi2_mosi_pc1>;
     pinctrl-names = "default";
-    cs-gpios = <&gpiob 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+    cs-gpios = <&gpioa 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
     bme280@0 {
         compatible = "bosch,bme280";
         reg = <0>;
         spi-max-frequency = <1000000>;
     };
-};
-
-&clk_hsi48 {
-    status = "okay";
 };
