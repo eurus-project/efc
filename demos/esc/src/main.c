@@ -84,7 +84,7 @@ int main(void) {
 
     /* ESC Initialization */
     ESC_Error_Type status;
-    ESC_Inst_Type esc1;
+    ESC_Inst_Type esc1, esc2, esc3, esc4, esc5, esc6, esc7, esc8;
     ESC_Protocol_Type protocol;
 
 #if CONFIG_ESC_PWM
@@ -97,12 +97,56 @@ int main(void) {
     protocol = ESC_MULTISHOT;
 #endif
 
-    const struct device *pwm_dev = DEVICE_DT_GET(DT_NODELABEL(pwm1));
+    const struct device *pwm_dev1 = DEVICE_DT_GET(DT_NODELABEL(pwm1));
+    const struct device *pwm_dev2 = DEVICE_DT_GET(DT_NODELABEL(pwm2));
+    const struct device *pwm_dev3 = DEVICE_DT_GET(DT_NODELABEL(pwm3));
 
-    if (!device_is_ready(pwm_dev))
+    if (!device_is_ready(pwm_dev1))
         return;
 
-    status = ESC_Init(&esc1, pwm_dev, 1, protocol);
+    if (!device_is_ready(pwm_dev2))
+        return;
+
+    if (!device_is_ready(pwm_dev3))
+        return;
+
+    // ESC1 - Timer3 channel 1
+    status = ESC_Init(&esc1, pwm_dev3, 1, protocol);
+    if (status < 0)
+        return;
+
+    // ESC2 - Timer3 channel 2
+    status = ESC_Init(&esc2, pwm_dev3, 2, protocol);
+    if (status < 0)
+        return;
+
+    // ESC3 - Timer3 channel 3
+    status = ESC_Init(&esc3, pwm_dev3, 3, protocol);
+    if (status < 0)
+        return;
+
+    // ESC4 - Timer3 channel 4
+    status = ESC_Init(&esc4, pwm_dev3, 4, protocol);
+    if (status < 0)
+        return;
+
+    // ESC5 - Timer1 channel 2n
+    status = ESC_Init(&esc5, pwm_dev1, 2, protocol);
+    if (status < 0)
+        return;
+
+    // ESC6 - Timer1 channel 4n
+    status = ESC_Init(&esc6, pwm_dev1, 4, protocol);
+    if (status < 0)
+        return;
+
+    // ESC7 - Timer2 channel 1
+    status = ESC_Init(&esc7, pwm_dev2, 1, protocol);
+    if (status < 0)
+        return;
+
+    // ESC8 - Timer2 channel 4
+    status = ESC_Init(&esc8, pwm_dev2, 4, protocol);
     if (status < 0)
         return;
 
@@ -110,6 +154,14 @@ int main(void) {
     printk("ESC Arming...\n");
 
     status = ESC_Arm(&esc1);
+    status = ESC_Arm(&esc2);
+    status = ESC_Arm(&esc3);
+    status = ESC_Arm(&esc4);
+    status = ESC_Arm(&esc5);
+    status = ESC_Arm(&esc6);
+    status = ESC_Arm(&esc7);
+    status = ESC_Arm(&esc8);
+
     if (status < 0) {
         return;
     } else {
@@ -125,11 +177,25 @@ int main(void) {
         for (float i = 0.0f; i < 1.0f; i += 0.1f) {
             gpio_pin_toggle_dt(&fw_running_led);
             ESC_SetSpeed(&esc1, i);
+            ESC_SetSpeed(&esc2, i);
+            ESC_SetSpeed(&esc3, i);
+            ESC_SetSpeed(&esc4, i);
+            ESC_SetSpeed(&esc5, i);
+            ESC_SetSpeed(&esc6, i);
+            ESC_SetSpeed(&esc7, i);
+            ESC_SetSpeed(&esc8, i);
             k_msleep(ESC_SPEED_CHANGE_MS);
         }
         for (float i = 1.0f; i > 0.0f; i -= 0.1f) {
             gpio_pin_toggle_dt(&fw_running_led);
             ESC_SetSpeed(&esc1, i);
+            ESC_SetSpeed(&esc2, i);
+            ESC_SetSpeed(&esc3, i);
+            ESC_SetSpeed(&esc4, i);
+            ESC_SetSpeed(&esc5, i);
+            ESC_SetSpeed(&esc6, i);
+            ESC_SetSpeed(&esc7, i);
+            ESC_SetSpeed(&esc8, i);
             k_msleep(ESC_SPEED_CHANGE_MS);
         }
     }
