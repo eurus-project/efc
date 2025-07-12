@@ -1,0 +1,61 @@
+/*
+ * This file is part of the efc project <https://github.com/eurus-project/efc/>.
+ * Copyright (c) 2024 The efc developers.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/ {
+	chosen {
+		zephyr,console = &cdc_acm_uart;
+	};
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+&timers1 {
+	status = "okay";
+	st,prescaler = <24>;
+
+	pwm1: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim1_ch2n_pb14 &tim1_ch4n_pc5>;
+		pinctrl-names = "default";
+	};
+};
+
+&timers2 {
+	status = "okay";
+	st,prescaler = <24>;
+
+	pwm2: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim2_ch1_pa0 &tim2_ch4_pc4>;
+		pinctrl-names = "default";
+	};
+};
+
+&timers3 {
+	status = "okay";
+	st,prescaler = <24>;
+
+	pwm3: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim3_ch1_pc6 &tim3_ch2_pc7 &tim3_ch3_pb0 &tim3_ch4_pb1>;
+		pinctrl-names = "default";
+	};
+};
