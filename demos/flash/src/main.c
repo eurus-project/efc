@@ -165,6 +165,12 @@ int main(void) {
         return 0;
     }
 
+    const struct device *flash_dev = DEVICE_DT_GET(DT_NODELABEL(spiflash));
+    if (!device_is_ready(flash_dev)) {
+        LOG_ERR("SPI flash device not ready");
+        return;
+    }
+
     ret = fs_mount(&main_fs_mount);
     if (ret < 0) {
         LOG_ERR("Could not mount filesystem!\n");
