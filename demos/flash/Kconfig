@@ -1,0 +1,5 @@
+# Flash non-volatile storage demo configuration
+
+mainmenu "Eurus Flight Controller - Flash demo"
+
+source "Kconfig.zephyr"
