@@ -1,0 +1,5 @@
+# Copyright (c) 2025 The efc developers
+# GNU General Public License
+
+config BOARD_EURUS_NEXUS_V1_1
+    select SOC_STM32H562XE

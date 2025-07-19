@@ -1,0 +1,6 @@
+board:
+  name: eurus_nexus_v1_1
+  full_name: Eurus Nexus Version 1.1
+  vendor: eurus-project
+  socs:
+    - name: stm32h562xx
