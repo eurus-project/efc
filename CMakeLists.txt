@@ -24,5 +24,7 @@ else()
 	set(VENV_PYTHON ${EFC_SOURCE_DIR}/python_venv/bin/python)
 endif()
 
+list(APPEND BOARD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/boards/eurus_project/)
+
 
 add_subdirectory(libs)

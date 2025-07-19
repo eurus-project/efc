@@ -17,4 +17,3 @@ supported:
   - usb_device
   - rtc
   - watchdog
-vendor: eurus-project
