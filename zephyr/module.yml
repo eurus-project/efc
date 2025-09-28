@@ -1,2 +1,5 @@
 build:
-  cmake: .
+    cmake: .
+    settings:
+        board_root: .
+        dts_root: .

@@ -59,4 +59,4 @@ jobs:
       - name: Build project
         run: |
           cd $GITHUB_WORKSPACE/zephyrproject/${{ github.event.repository.name }}
-          $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west build -b blackpill_f411ce app
+          $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west build -b eurus_nexus_v1_1 app

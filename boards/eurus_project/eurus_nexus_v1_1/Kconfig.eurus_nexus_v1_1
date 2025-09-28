@@ -1,0 +1,7 @@
+# Copyright (c) 2025 The efc developers
+# GNU General Public License
+
+config BOARD_EURUS_NEXUS_V1_1
+    bool "eurus_nexus_v1_1 board"
+    default y
+    select SOC_STM32H562XX
