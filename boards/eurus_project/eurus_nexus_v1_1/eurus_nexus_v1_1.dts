@@ -1,0 +1,349 @@
+/*
+ * This file is part of the efc project <https://github.com/eurus-project/efc/>.
+ * Copyright (c) 2024 - 2025 The efc developers.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/dts-v1/;
+#include <st/h5/stm32h562Xg.dtsi>
+#include <st/h5/stm32h562rgtx-pinctrl.dtsi>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/sensor/icm42688.h>
+
+/ {
+	chosen {
+		zephyr,console = &cdc_acm_uart;
+        zephyr,shell-uart = &cdc_acm_uart;
+        zephyr,code-partition = &slot0_partition;
+		zephyr,sram = &sram1;
+		zephyr,flash = &flash0;
+		telemetry,ground = &usart1;
+        futaba,sbus = &sbus_usart;
+	};
+
+	aliases {
+		led0 = &led_0;
+		sw0 = &button_0;
+		watchdog0 = &iwdg;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led_0: led0 {
+			gpios = <&gpiob 2 GPIO_ACTIVE_HIGH>;
+			label = "User LED";
+		};
+	};
+
+	gpio_keys {
+		compatible = "gpio-keys";
+
+		button_0: button0 {
+			label = "User Button";
+			gpios = <&gpioc 13 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			zephyr,code = <INPUT_KEY_0>;
+		};
+	};
+};
+
+&clk_lsi {
+	status = "okay";
+};
+
+&clk_lse {
+	status = "okay";
+};
+
+&clk_hsi {
+	status = "okay";
+};
+
+&clk_hsi48 {
+	status = "okay";
+};
+
+&clk_hse {
+	status = "okay";
+	clock-frequency = <DT_FREQ_M(8)>;
+};
+
+&rcc {
+	clocks = <&pll>;
+	clock-frequency = <DT_FREQ_M(240)>;
+	ahb-prescaler = <1>;
+	apb1-prescaler = <2>;
+	apb2-prescaler = <1>;
+	apb3-prescaler = <2>;
+};
+
+&pll {
+	div-m = <2>;
+	mul-n = <120>;
+	div-p = <2>;
+	div-q = <6>; // NOTE: This divider value cannot be lower than this because ADC has a limit on clock value
+	div-r = <2>;
+	clocks = <&clk_hse>;
+	status = "okay";
+};
+
+stm32_lp_tick_source: &lptim4 {
+	clocks = <&rcc STM32_CLOCK(APB3, 13)>,
+		 <&rcc STM32_SRC_LSI LPTIM4_SEL(4)>;
+	status = "okay";
+};
+
+&flash0 {
+	partitions {
+		compatible = "fixed-partitions";
+
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 DT_SIZE_K(64)>;
+		};
+
+		slot0_partition: partition@10000 {
+			label = "image-0";
+			reg = <0x00010000 DT_SIZE_K(448)>;
+		};
+
+		slot1_partition: partition@80000 {
+			label = "image-1";
+			reg = <0x00080000 DT_SIZE_K(448)>;
+		};
+
+		storage_partition: partition@f0000 {
+			label = "storage";
+			reg = <0x000f0000 DT_SIZE_K(64)>;
+		};
+	};
+};
+
+&sdmmc1 {
+    status = "disabled";
+};
+
+&rtc {
+	clocks = <&rcc STM32_CLOCK(APB3, 21)>,
+		 <&rcc STM32_SRC_LSE RTC_SEL(1)>;
+	status = "okay";
+};
+
+&iwdg {
+	status = "okay";
+};
+
+&rng {
+	status = "okay";
+};
+
+&usart1 {
+	status = "okay";
+	pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
+	pinctrl-names = "default";
+	current-speed = <115200>;
+};
+
+&usart2 {
+    pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
+	pinctrl-names = "default";
+	status = "okay";
+
+    sbus_usart: sbus {
+        compatible = "futaba,sbus";
+        right_stick_x {
+            channel = <1>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <INPUT_ABS_RX>;
+        };
+        right_stick_y {
+            channel = <2>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <INPUT_ABS_RY>;
+        };
+        left_stick_x {
+            channel = <3>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <INPUT_ABS_THROTTLE>;
+        };
+        left_stick_y {
+            channel = <4>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <INPUT_ABS_RZ>;
+        };
+    };
+};
+
+&spi1 {
+    pinctrl-0 = <&spi1_nss_pa4 &spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
+	pinctrl-names = "default";
+    status = "okay";
+    cs-gpios = <&gpioa 4 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+
+	sdhc0: sdhc@0 {
+                compatible = "zephyr,sdhc-spi-slot";
+                reg = <0>;
+                status = "okay";
+                mmc {
+                    compatible = "zephyr,sdmmc-disk";
+                    disk-name = "SD_SPI";
+                    status = "okay";
+                };
+                spi-max-frequency = <24000000>;
+        };
+};
+
+&fdcan1 {
+    status = "disabled";
+};
+
+zephyr_udc0: &usb {
+	pinctrl-0 = <&usb_dm_pa11 &usb_dp_pa12>;
+	pinctrl-names = "default";
+    cdc_acm_uart: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+	status = "okay";
+};
+
+&spi2 {
+    status = "okay";
+    pinctrl-0 = <&spi2_sck_pb10 &spi2_miso_pc2 &spi2_mosi_pc1>;
+    pinctrl-names = "default";
+    cs-gpios = <&gpioa 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>,
+               <&gpioa 1 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+
+    bme280@0 {
+        compatible = "bosch,bme280";
+        reg = <0>;
+        spi-max-frequency = <1000000>;
+    };
+
+    imu_icm42688p: icm42688@1 {
+        compatible = "invensense,icm42688";
+        reg = <1>;
+        status = "okay";
+        label = "ICM42688P";
+        spi-max-frequency = <1000000>;
+        int-gpios = <&gpioc 0 GPIO_ACTIVE_HIGH>;
+        accel-pwr-mode = <ICM42688_DT_ACCEL_LN>;
+        accel-fs = <ICM42688_DT_ACCEL_FS_16>;
+        accel-odr = <ICM42688_DT_ACCEL_ODR_50>;
+        gyro-pwr-mode= <ICM42688_DT_GYRO_LN>;
+        gyro-fs = <ICM42688_DT_GYRO_FS_2000>;
+        gyro-odr = <ICM42688_DT_GYRO_ODR_50>;
+	};
+};
+
+&spi3 {
+    status = "okay";
+    pinctrl-0 = <&spi3_sck_pb3 &spi3_miso_pb4 &spi3_mosi_pb5>;
+    pinctrl-names = "default";
+    cs-gpios = <&gpiob 12 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+
+    spiflash: spiflash@0 {
+        compatible = "jedec,spi-nor";
+        status = "okay";
+        reg = <0>;
+        label = "W25Q128";
+        spi-max-frequency = <1000000U>;
+        jedec-id = [ef 40 18];
+        size = <0x1000000>;
+        /* Optionally, set the deep power down mode */
+        // has-dpd;
+        // t-enter-dpd = <10000>;
+        // t-exit-dpd = <35000>;
+    };
+};
+
+&spiflash {
+    partitions {
+        compatible = "fixed-partitions";
+        #address-cells = <1>;
+        #size-cells = <1>;
+
+        lfs_partition: partition@0 {
+            label = "storage_spi_flash";
+            reg = <0x00000000 0x01000000>;  // 16MB
+        };
+    };
+};
+
+&i2c1 {
+    pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
+    pinctrl-names = "default";
+    status = "okay";
+    clock-frequency = <I2C_BITRATE_FAST>;
+
+    imu_mpu6050: mpu6050@68 {
+		compatible = "invensense,mpu6050";
+		reg = <0x68>;
+		status = "okay";
+		int-gpios = <&gpiob 8 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&adc1 {
+    compatible = "st,stm32-adc";
+	st,adc-clock-source = "SYNC";
+	st,adc-prescaler = <4>;
+    status = "okay";
+    
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+    channel@13 {
+        reg = <13>;
+		zephyr,gain = "ADC_GAIN_1";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,resolution = <12>;
+    };
+};
+
+&timers1 {
+	status = "okay";
+	st,prescaler = <24>;
+
+	pwm1: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim1_ch2n_pb14 &tim1_ch4n_pc5>;
+		pinctrl-names = "default";
+	};
+};
+
+&timers2 {
+	status = "okay";
+	st,prescaler = <24>;
+
+	pwm2: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim2_ch1_pa0 &tim2_ch4_pc4>;
+		pinctrl-names = "default";
+	};
+};
+
+&timers3 {
+	status = "okay";
+	st,prescaler = <24>;
+
+	pwm3: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim3_ch1_pc6 &tim3_ch2_pc7 &tim3_ch3_pb0 &tim3_ch4_pb1>;
+		pinctrl-names = "default";
+	};
+};

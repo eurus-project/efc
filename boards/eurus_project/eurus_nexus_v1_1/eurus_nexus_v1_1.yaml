@@ -1,0 +1,19 @@
+identifier: eurus_nexus_v1_1
+name: Eurus Nexus Version 1.1
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+  - gnuarmemb
+  - xtools
+ram: 640
+flash: 1024
+supported:
+  - gpio
+  - can
+  - uart
+  - entropy
+  - spi
+  - usb_device
+  - rtc
+  - watchdog
