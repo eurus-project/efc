@@ -338,8 +338,9 @@ int main(void) {
             return 0;
         }
 
-        if (!main_imu_using_trigger)
+        if (!main_imu_using_trigger) {
             process_imu(main_imu);
+        }
 
         process_baro(main_baro);
 
