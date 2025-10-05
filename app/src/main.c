@@ -149,7 +149,7 @@ static int process_imu(const struct device *dev) {
     return 0;
 }
 
-#ifdef CONFIG_ICM42688_TRIGGER
+#ifdef CONFIG_ICM4268X_TRIGGER
 static void handle_icm42688p_drdy(const struct device *dev,
                                   const struct sensor_trigger *trig) {
     process_imu(dev);
@@ -270,7 +270,7 @@ int main(void) {
     const struct device *const main_imu =
         DEVICE_DT_GET(DT_NODELABEL(imu_icm42688p));
 
-#ifdef CONFIG_ICM42688_TRIGGER
+#ifdef CONFIG_ICM4268X_TRIGGER
     struct sensor_trigger icm42688p_trigger = {.type = SENSOR_TRIG_DATA_READY,
                                                .chan = SENSOR_CHAN_ALL};
 
