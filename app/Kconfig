@@ -9,6 +9,7 @@ config APP_DATA_LOGGING_SYNC_INTERVAL
 
 choice APP_PRIMARY_IMU
 	prompt "Primary IMU"
+	default APP_PRIMARY_IMU_ICM42688P
 	help
 		This configures Eurus Flight Controller primary IMU.
 

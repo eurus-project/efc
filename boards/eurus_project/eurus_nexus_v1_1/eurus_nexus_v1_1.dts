@@ -234,10 +234,9 @@ zephyr_udc0: &usb {
     };
 
     imu_icm42688p: icm42688@1 {
-        compatible = "invensense,icm42688";
+        compatible = "invensense,icm42688", "invensense,icm4268x";
         reg = <1>;
         status = "okay";
-        label = "ICM42688P";
         spi-max-frequency = <1000000>;
         int-gpios = <&gpioc 0 GPIO_ACTIVE_HIGH>;
         accel-pwr-mode = <ICM42688_DT_ACCEL_LN>;
