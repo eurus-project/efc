@@ -189,7 +189,7 @@ stm32_lp_tick_source: &lptim4 {
 };
 
 &spi1 {
-    pinctrl-0 = <&spi1_nss_pa4 &spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
+    pinctrl-0 = <&spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
 	pinctrl-names = "default";
     status = "okay";
     cs-gpios = <&gpioa 4 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
@@ -259,7 +259,7 @@ zephyr_udc0: &usb {
         status = "okay";
         reg = <0>;
         label = "W25Q128";
-        spi-max-frequency = <1000000U>;
+        spi-max-frequency = <50000000U>;
         jedec-id = [ef 40 18];
         size = <0x1000000>;
         /* Optionally, set the deep power down mode */
@@ -275,9 +275,14 @@ zephyr_udc0: &usb {
         #address-cells = <1>;
         #size-cells = <1>;
 
-        lfs_partition: partition@0 {
+        spiflash_partition0: partition@0 {
             label = "storage_spi_flash";
-            reg = <0x00000000 0x01000000>;  // 16MB
+            reg = <0x00000000 0x8000>;  // 32 KB
+        };
+
+		spiflash_partition1: partition@8000 {
+            label = "storage_spi_flash";
+            reg = <0x00008000 0x00ff8000>;  // Remaining ~15.968 MB
         };
     };
 };
