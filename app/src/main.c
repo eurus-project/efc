@@ -69,16 +69,13 @@ struct fs_mount_t main_fs_mount = {
 
 int32_t boot_count = -1;
 
-// NVS
-#if defined(CONFIG_NVS_TEST)
+// NVS (Non-Volatile Storage)
 static struct nvs_fs nvs;
 #define NVS_PARTITION spiflash_partition0
 #define NVS_PARTITION_DEVICE FIXED_PARTITION_DEVICE(NVS_PARTITION)
 #define NVS_PARTITION_OFFSET FIXED_PARTITION_OFFSET(NVS_PARTITION)
 #define NVS_SECTOR_COUNT 3
-#define NVS_TEST_DATA_ID 1
-#define NVS_BOOT_COUNT_ID 2
-#endif // CONFIG_NVS_TEST
+#define NVS_BOOT_COUNT_ID 1
 
 struct k_pipe telemetry_ground_pipe;
 static uint8_t telemetry_ground_pipe_data[1024];
@@ -206,105 +203,8 @@ static int process_baro(const struct device *dev) {
 
     return 0;
 }
-#if !defined(CONFIG_NVS_TEST)
-static int update_boot_count(void) {
-    struct fs_file_t boot_count_file;
-    fs_file_t_init(&boot_count_file);
 
-    char filename[LFS_NAME_MAX];
-    snprintf(filename, sizeof(filename), "%s/boot_count",
-             main_fs_mount.mnt_point);
-    int ret = fs_open(&boot_count_file, filename, FS_O_RDWR | FS_O_CREATE);
-    if (ret < 0) {
-        LOG_ERR("Could not open file!\n");
-        return ret;
-    }
-
-    ret = fs_read(&boot_count_file, &boot_count, sizeof(boot_count));
-    if (ret < 0) {
-        LOG_ERR("Could not read from file!\n");
-        return ret;
-    }
-
-    LOG_INF("Boot count: %d\n", (int)boot_count);
-
-    ret = fs_seek(&boot_count_file, 0, FS_SEEK_SET);
-    if (ret < 0) {
-        LOG_ERR("Could not seek to beggining of the file!\n");
-        return ret;
-    }
-
-    boot_count += 1;
-    ret = fs_write(&boot_count_file, &boot_count, sizeof(boot_count));
-    if (ret < 0) {
-        LOG_ERR("Could not write to file!\n");
-        return ret;
-    }
-
-    ret = fs_close(&boot_count_file);
-    if (ret < 0) {
-        LOG_ERR("Could not close file!\n");
-        return ret;
-    }
-
-    return 0;
-}
-#endif // CONFIG_NVS_TEST
-
-#if defined(CONFIG_NVS_TEST)
-static void nvs_update_test_data(struct nvs_fs *nvs) {
-    int32_t test_data = 0;
-
-    int ret = nvs_read(nvs, NVS_TEST_DATA_ID, &test_data, sizeof(test_data));
-    if (ret > 0) {   // Item found
-        test_data++; // Increment test_data if found, if not write zero
-    }
-
-    LOG_INF("test_data: ID = %d, Value = %d\n", NVS_TEST_DATA_ID, test_data);
-
-    ret = nvs_write(nvs, NVS_TEST_DATA_ID, &test_data, sizeof(test_data));
-    if (ret < 0) {
-        LOG_ERR("Error in writting to nvs!");
-    }
-}
-
-static int update_boot_count(struct nvs_fs *nvs) {
-    int32_t temp = 0;
-    int ret = nvs_read(nvs, NVS_BOOT_COUNT_ID, &temp, sizeof(temp));
-    if (temp >= 0) { // Item found
-        boot_count = (uint32_t)temp;
-        boot_count++; // Increment boot_count if found, if not write zero
-    } else {
-        // Try to initialize boot_count if it is first write to NVS
-        temp = 0;
-        ret = nvs_write(nvs, NVS_BOOT_COUNT_ID, &temp, sizeof(temp));
-        if (ret < 0) {
-            LOG_ERR("Error in writting initial boot_count in NVS!");
-        } else {
-            ret = nvs_read(nvs, NVS_BOOT_COUNT_ID, &temp, sizeof(temp));
-            if (temp == 0) {
-                boot_count = temp;
-                LOG_INF("NVS successfully initialized boot_count!");
-            } else {
-                LOG_ERR("NVS failed to initialize boot_count!");
-            }
-        }
-    }
-
-    LOG_INF("boot_count: ID = %d, Value = %d\n", NVS_BOOT_COUNT_ID, boot_count);
-    /*
-        ret = nvs_write(nvs, NVS_BOOT_COUNT_ID, &boot_count,
-       sizeof(boot_count)); if (ret < 0) { LOG_ERR("Error in writting to nvs!");
-        }
-    */
-    temp = boot_count;
-    ret = nvs_write(nvs, NVS_BOOT_COUNT_ID, &temp, sizeof(temp));
-    if (ret < 0) {
-        LOG_ERR("Error in writting initial boot_count in NVS!");
-    }
-}
-
-static int update_boot_count_clean(struct nvs_t *nvs) {
+static int update_boot_count(struct nvs_t *nvs) {
     int ret = nvs_read(nvs, NVS_BOOT_COUNT_ID, &boot_count, sizeof(boot_count));
     if (boot_count >= 0) { // Item found
         boot_count++;      // Increment boot_count if found, if not write zero
@@ -332,8 +232,6 @@ static int update_boot_count_clean(struct nvs_t *nvs) {
         LOG_ERR("Error in writting initial boot_count in NVS!");
     }
 }
-
-#endif // CONFIG_NVS_TEST
 
 int main(void) {
     if (DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)) {
@@ -404,11 +302,9 @@ int main(void) {
         LOG_ERR("Could not mount filesystem!\n");
     }
 
-    // NVS test
-#if defined(CONFIG_NVS_TEST)
+    // Configure NVS
     struct flash_pages_info nvs_info;
 
-    /* Configure NVS */
     nvs.flash_device = NVS_PARTITION_DEVICE;
     if (!device_is_ready(nvs.flash_device)) {
         LOG_ERR("Flash device not ready!");
@@ -431,18 +327,10 @@ int main(void) {
         return 0;
     }
 
-    nvs_update_test_data(&nvs);
-
-    ret = update_boot_count_clean(&nvs);
+    ret = update_boot_count(&nvs);
     if (ret < 0) {
         LOG_ERR("Could not update boot count from NVS!");
     }
-#else
-    ret = update_boot_count();
-    if (ret < 0) {
-        LOG_ERR("Could not update boot count!");
-    }
-#endif // CONFIG_NVS_TEST
 
     k_pipe_init(&telemetry_ground_pipe, telemetry_ground_pipe_data,
                 sizeof(telemetry_ground_pipe_data));
