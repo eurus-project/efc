@@ -276,12 +276,12 @@ zephyr_udc0: &usb {
         #size-cells = <1>;
 
         spiflash_partition0: partition@0 {
-            label = "storage_spi_flash";
+            label = "storage_spi_flash_partition0";
             reg = <0x00000000 0x8000>;  // 32 KB
         };
 
 		spiflash_partition1: partition@8000 {
-            label = "storage_spi_flash";
+            label = "storage_spi_flash_partition1";
             reg = <0x00008000 0x00ff8000>;  // Remaining ~15.968 MB
         };
     };
