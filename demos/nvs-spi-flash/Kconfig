@@ -1,0 +1,3 @@
+# Flash non-volatile storage demo configuration
+
+source "Kconfig.zephyr"

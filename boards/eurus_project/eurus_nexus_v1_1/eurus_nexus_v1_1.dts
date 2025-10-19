@@ -275,7 +275,7 @@ zephyr_udc0: &usb {
         #address-cells = <1>;
         #size-cells = <1>;
 
-        lfs_partition: partition@0 {
+        spiflash_partition0: partition@0 {
             label = "storage_spi_flash";
             reg = <0x00000000 0x01000000>;  // 16MB
         };
