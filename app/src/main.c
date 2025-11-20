@@ -69,7 +69,6 @@ struct fs_mount_t main_fs_mount = {
 
 int32_t boot_count = -1;
 
-// NVS (Non-Volatile Storage)
 static struct nvs_fs nvs;
 #define NVS_PARTITION spiflash_partition0
 #define NVS_PARTITION_DEVICE FIXED_PARTITION_DEVICE(NVS_PARTITION)
@@ -204,33 +203,36 @@ static int process_baro(const struct device *dev) {
     return 0;
 }
 
-static int update_boot_count(struct nvs_t *nvs) {
-    int ret = nvs_read(nvs, NVS_BOOT_COUNT_ID, &boot_count, sizeof(boot_count));
-    if (boot_count >= 0) { // Item found
-        boot_count++;      // Increment boot_count if found, if not write zero
+static int update_boot_count(struct nvs_fs *nvs) {
+    ssize_t ret =
+        nvs_read(nvs, NVS_BOOT_COUNT_ID, &boot_count, sizeof(boot_count));
+    if (ret == sizeof(boot_count) && boot_count >= 0) { // Item found
+        boot_count++; // Increment boot_count if found, if not write zero
     } else {
         // Try to initialize boot_count if it is first write to NVS
         boot_count = 0;
         ret =
             nvs_write(nvs, NVS_BOOT_COUNT_ID, &boot_count, sizeof(boot_count));
         if (ret < 0) {
-            LOG_ERR("Error in writting initial boot_count in NVS!");
+            LOG_ERR("Error in writting initial boot_count in NVS: %d", ret);
+            return ret;
+        }
+
+        ret = nvs_read(nvs, NVS_BOOT_COUNT_ID, &boot_count, sizeof(boot_count));
+        if (ret == sizeof(boot_count) && boot_count == 0) {
+            LOG_INF("NVS successfully initialized boot_count!");
         } else {
-            ret = nvs_read(nvs, NVS_BOOT_COUNT_ID, &boot_count,
-                           sizeof(boot_count));
-            if (boot_count == 0) {
-                LOG_INF("NVS successfully initialized boot_count!");
-            } else {
-                LOG_ERR("NVS failed to initialize boot_count!");
-            }
+            LOG_ERR("NVS failed to initialize boot_count: %d", ret);
+            return ret;
         }
     }
 
     LOG_INF("boot_count: ID = %d, Value = %d\n", NVS_BOOT_COUNT_ID, boot_count);
     ret = nvs_write(nvs, NVS_BOOT_COUNT_ID, &boot_count, sizeof(boot_count));
     if (ret < 0) {
-        LOG_ERR("Error in writting initial boot_count in NVS!");
+        LOG_ERR("Error in writting initial boot_count!");
     }
+    return ret;
 }
 
 int main(void) {

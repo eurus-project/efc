@@ -7,10 +7,6 @@ config APP_DATA_LOGGING_SYNC_INTERVAL
 		This configures the interval at which the logging system flushes everything to disk
 		and hence determines the maximum duration of data lost on power cuts.
 
-config NVS_TEST
-	bool "Enable NVS test in main app"
-	default true
-
 choice APP_PRIMARY_IMU
 	prompt "Primary IMU"
 	default APP_PRIMARY_IMU_ICM42688P
