@@ -38,6 +38,7 @@
 #include "telemetry_packer.h"
 #include "telemetry_sender.h"
 
+#include "nvs_ids.h"
 #include "types.h"
 
 LOG_MODULE_REGISTER(main);
@@ -73,8 +74,7 @@ static struct nvs_fs nvs;
 #define NVS_PARTITION spiflash_partition0
 #define NVS_PARTITION_DEVICE FIXED_PARTITION_DEVICE(NVS_PARTITION)
 #define NVS_PARTITION_OFFSET FIXED_PARTITION_OFFSET(NVS_PARTITION)
-#define NVS_SECTOR_COUNT 3
-#define NVS_BOOT_COUNT_ID 1
+#define NVS_SECTOR_COUNT 4
 
 struct k_pipe telemetry_ground_pipe;
 static uint8_t telemetry_ground_pipe_data[1024];
