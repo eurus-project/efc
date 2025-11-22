@@ -26,6 +26,8 @@
 static void normalize_stick_input(const MIXER_Raw_Input_Type *mixer_raw,
                                   MIXER_Mapped_Input_Type *mixer_mapped);
 
+static float limit_min_thrust_values(float mixer_calcualated_val, float thrust);
+
 MIXER_Error_Type MIXER_AddMotorInstance(MIXER_Inst_Type *mixer,
                                         ESC_Inst_Type *esc) {
     if (!esc->initialized) {
@@ -75,14 +77,14 @@ MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
     // TODO: Add checks here for edge-cases like R=P=0 and Y>T
     switch (mixer->uav_config) {
     case MIXER_UAV_CFG_QUADROTOR_X:
-        m1 = mixer_mapped.thrust - mixer_mapped.roll + mixer_mapped.pitch +
-             mixer_mapped.yaw;
-        m2 = mixer_mapped.thrust + mixer_mapped.roll - mixer_mapped.pitch +
-             mixer_mapped.yaw;
-        m3 = mixer_mapped.thrust + mixer_mapped.roll + mixer_mapped.pitch -
-             mixer_mapped.yaw;
-        m4 = mixer_mapped.thrust - mixer_mapped.roll - mixer_mapped.pitch -
-             mixer_mapped.yaw;
+        m1 = limit_min_thrust_values(mixer_mapped.thrust - mixer_mapped.roll +
+                                     mixer_mapped.pitch + mixer_mapped.yaw);
+        m2 = limit_min_thrust_values(mixer_mapped.thrust + mixer_mapped.roll -
+                                     mixer_mapped.pitch + mixer_mapped.yaw);
+        m3 = limit_min_thrust_values(mixer_mapped.thrust + mixer_mapped.roll +
+                                     mixer_mapped.pitch - mixer_mapped.yaw);
+        m4 = limit_min_thrust_values(mixer_mapped.thrust - mixer_mapped.roll -
+                                     mixer_mapped.pitch - mixer_mapped.yaw);
         break;
 
     default:
@@ -192,4 +194,15 @@ static void normalize_stick_input(const MIXER_Raw_Input_Type *mixer_raw,
         mixer_mapped->thrust = -1.0f;
     if (mixer_mapped->thrust > 1.0f)
         mixer_mapped->thrust = 1.0f;
+}
+
+static float limit_min_thrust_values(float mixer_calcualated_val,
+                                     float thrust) {
+    if ((mixer_calcualated_val * 100 <
+         CONFIG_MIXER_MINIMAL_CALCULATED_VALUE_PERCENT) &&
+        (thrust * 100 > CONFIG_MIXER_LOWER_THRUST_THRESHOLD_PERCENT)) {
+        return CONFIG_MIXER_MINIMAL_CALCULATED_VALUE_PERCENT / 100.0f;
+    } else {
+        return mixer_calcualated_val;
+    }
 }

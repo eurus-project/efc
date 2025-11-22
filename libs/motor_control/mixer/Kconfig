@@ -35,6 +35,15 @@ config MIXER_NEUTRAL_RECEIVER_DATA_VALUE
     default 1024
     depends on MIXER_MAXIMAL_RECEIVER_DATA_OFFSET
 
+config MIXER_MINIMAL_CALCULATED_VALUE_PERCENT
+    int "Minimum allowed calculated mixer value during mixing"
+    default 30
+
+config MIXER_LOWER_THRUST_THRESHOLD_PERCENT
+    int "Lower threshold of thrust for which MIXER_MINIMAL_CALC_VALUE_PERCENT \
+    is applied"
+    default 40
+
 endif # MIXER
 
 # NOTE: This should be sourced only inside Kconfig from the actual application,
