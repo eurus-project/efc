@@ -124,7 +124,7 @@ int main(void) {
     protocol = ESC_MULTISHOT;
 #endif
 
-    const struct device *pwm_dev = DEVICE_DT_GET(DT_NODELABEL(pwm1));
+    const struct device *pwm_dev = DEVICE_DT_GET(DT_NODELABEL(pwm3));
 
     if (!device_is_ready(pwm_dev))
         return 0;

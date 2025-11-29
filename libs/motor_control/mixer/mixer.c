@@ -78,13 +78,17 @@ MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
     switch (mixer->uav_config) {
     case MIXER_UAV_CFG_QUADROTOR_X:
         m1 = limit_min_thrust_values(mixer_mapped.thrust - mixer_mapped.roll +
-                                     mixer_mapped.pitch + mixer_mapped.yaw);
+                                         mixer_mapped.pitch + mixer_mapped.yaw,
+                                     mixer_mapped.thrust);
         m2 = limit_min_thrust_values(mixer_mapped.thrust + mixer_mapped.roll -
-                                     mixer_mapped.pitch + mixer_mapped.yaw);
+                                         mixer_mapped.pitch + mixer_mapped.yaw,
+                                     mixer_mapped.thrust);
         m3 = limit_min_thrust_values(mixer_mapped.thrust + mixer_mapped.roll +
-                                     mixer_mapped.pitch - mixer_mapped.yaw);
+                                         mixer_mapped.pitch - mixer_mapped.yaw,
+                                     mixer_mapped.thrust);
         m4 = limit_min_thrust_values(mixer_mapped.thrust - mixer_mapped.roll -
-                                     mixer_mapped.pitch - mixer_mapped.yaw);
+                                         mixer_mapped.pitch - mixer_mapped.yaw,
+                                     mixer_mapped.thrust);
         break;
 
     default:
