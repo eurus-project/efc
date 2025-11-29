@@ -7,56 +7,32 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - name: Install required packages
-        run: |
-          sudo apt update && sudo apt upgrade
-          sudo apt install --no-install-recommends -y git cmake ninja-build gperf \
-            ccache dfu-util device-tree-compiler wget \
-            python3-dev python3-pip python3-setuptools python3-tk python3-wheel xz-utils file \
-            make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1 python3-venv
-
-      - name: Create a virtual environment for Zephyr and intall west
-        run: |
-          python3 -m venv $GITHUB_WORKSPACE/zephyrproject/.venv
-          $GITHUB_WORKSPACE/zephyrproject/.venv/bin/pip install west
-
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          path: zephyrproject/${{ github.event.repository.name }}
+          path: efc
 
-      - name: Get Zephyr source code
-        run: |
-          $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west init -l $GITHUB_WORKSPACE/zephyrproject/${{ github.event.repository.name }}/
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
 
-      - name: Update Zephyr Workspace
-        run: |
-          cd $GITHUB_WORKSPACE/zephyrproject/
-          $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west update
-
-      - name: Export Zephyr CMake Package
-        run: |
-          cd $GITHUB_WORKSPACE/zephyrproject/
-          $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west zephyr-export
-
-      - name: Install Python dependencies
-        run: |
-          cd $GITHUB_WORKSPACE/zephyrproject/
-          $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west packages pip --install
-
-      - name: Install Zephyr SDK
-        run: |
-          cd $GITHUB_WORKSPACE/zephyrproject/
-          $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west sdk install
+      - name: Setup Zephyr project
+        uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: efc
+          toolchains: arm-zephyr-eabi
 
       - name: Install project requirements
         run: |
-          cd $GITHUB_WORKSPACE/zephyrproject/${{ github.event.repository.name }}
-          python3 -m venv python_venv
-          python_venv/bin/pip install -r requirements.txt
+          cd ./efc
+          python -m venv python_venv
+          source python_venv/bin/activate
+          pip install -r requirements.txt
+          deactivate
 
       - name: Build project
         run: |
-          cd $GITHUB_WORKSPACE/zephyrproject/${{ github.event.repository.name }}
-          $GITHUB_WORKSPACE/zephyrproject/.venv/bin/west build -b eurus_nexus_v1_1 app
+          west build -b eurus_nexus_v1_1 efc/app
+
