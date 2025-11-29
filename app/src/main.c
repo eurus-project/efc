@@ -331,7 +331,7 @@ int main(void) {
 
     ret = update_boot_count(&nvs);
     if (ret < 0) {
-        LOG_ERR("Could not update boot count from NVS!");
+        LOG_ERR("Could not update boot count!");
     }
 
     k_pipe_init(&telemetry_ground_pipe, telemetry_ground_pipe_data,
