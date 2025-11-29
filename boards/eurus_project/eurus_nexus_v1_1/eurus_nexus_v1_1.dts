@@ -259,7 +259,7 @@ zephyr_udc0: &usb {
         status = "okay";
         reg = <0>;
         label = "W25Q128";
-        spi-max-frequency = <1000000U>;
+        spi-max-frequency = <50000000U>;
         jedec-id = [ef 40 18];
         size = <0x1000000>;
         /* Optionally, set the deep power down mode */
@@ -276,8 +276,8 @@ zephyr_udc0: &usb {
         #size-cells = <1>;
 
         spiflash_partition0: partition@0 {
-            label = "storage_spi_flash";
-            reg = <0x00000000 0x01000000>;  // 16MB
+            label = "storage_spi_flash_partition0";
+            reg = <0x00000000 0x8000>;  // 32 KB
         };
     };
 };

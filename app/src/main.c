@@ -19,13 +19,16 @@
 #include <stdio.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
+#include <zephyr/drivers/flash.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/fs/littlefs.h>
+#include <zephyr/fs/nvs.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/storage/flash_map.h>
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/usb/usbd.h>
 #include <zephyr/zbus/zbus.h>
@@ -35,6 +38,7 @@
 #include "telemetry_packer.h"
 #include "telemetry_sender.h"
 
+#include "nvs_ids.h"
 #include "types.h"
 
 LOG_MODULE_REGISTER(main);
@@ -65,6 +69,12 @@ struct fs_mount_t main_fs_mount = {
 };
 
 int32_t boot_count = -1;
+
+static struct nvs_fs nvs;
+#define NVS_PARTITION spiflash_partition0
+#define NVS_PARTITION_DEVICE FIXED_PARTITION_DEVICE(NVS_PARTITION)
+#define NVS_PARTITION_OFFSET FIXED_PARTITION_OFFSET(NVS_PARTITION)
+#define NVS_SECTOR_COUNT 4
 
 struct k_pipe telemetry_ground_pipe;
 static uint8_t telemetry_ground_pipe_data[1024];
@@ -193,47 +203,36 @@ static int process_baro(const struct device *dev) {
     return 0;
 }
 
-static int update_boot_count(void) {
-    struct fs_file_t boot_count_file;
-    fs_file_t_init(&boot_count_file);
+static int update_boot_count(struct nvs_fs *nvs) {
+    ssize_t ret =
+        nvs_read(nvs, NVS_BOOT_COUNT_ID, &boot_count, sizeof(boot_count));
+    if (ret == sizeof(boot_count) && boot_count >= 0) { // Item found
+        boot_count++; // Increment boot_count if found, if not write zero
+    } else {
+        // Try to initialize boot_count if it is first write to NVS
+        boot_count = 0;
+        ret =
+            nvs_write(nvs, NVS_BOOT_COUNT_ID, &boot_count, sizeof(boot_count));
+        if (ret < 0) {
+            LOG_ERR("Error in writting initial boot_count in NVS: %d", ret);
+            return ret;
+        }
 
-    char filename[LFS_NAME_MAX];
-    snprintf(filename, sizeof(filename), "%s/boot_count",
-             main_fs_mount.mnt_point);
-    int ret = fs_open(&boot_count_file, filename, FS_O_RDWR | FS_O_CREATE);
-    if (ret < 0) {
-        LOG_ERR("Could not open file!\n");
-        return ret;
+        ret = nvs_read(nvs, NVS_BOOT_COUNT_ID, &boot_count, sizeof(boot_count));
+        if (ret == sizeof(boot_count) && boot_count == 0) {
+            LOG_INF("NVS successfully initialized boot_count!");
+        } else {
+            LOG_ERR("NVS failed to initialize boot_count: %d", ret);
+            return ret;
+        }
     }
 
-    ret = fs_read(&boot_count_file, &boot_count, sizeof(boot_count));
+    LOG_INF("boot_count: ID = %d, Value = %d\n", NVS_BOOT_COUNT_ID, boot_count);
+    ret = nvs_write(nvs, NVS_BOOT_COUNT_ID, &boot_count, sizeof(boot_count));
     if (ret < 0) {
-        LOG_ERR("Could not read from file!\n");
-        return ret;
+        LOG_ERR("Error in writting initial boot_count!");
     }
-
-    LOG_INF("Boot count: %d\n", (int)boot_count);
-
-    ret = fs_seek(&boot_count_file, 0, FS_SEEK_SET);
-    if (ret < 0) {
-        LOG_ERR("Could not seek to beggining of the file!\n");
-        return ret;
-    }
-
-    boot_count += 1;
-    ret = fs_write(&boot_count_file, &boot_count, sizeof(boot_count));
-    if (ret < 0) {
-        LOG_ERR("Could not write to file!\n");
-        return ret;
-    }
-
-    ret = fs_close(&boot_count_file);
-    if (ret < 0) {
-        LOG_ERR("Could not close file!\n");
-        return ret;
-    }
-
-    return 0;
+    return ret;
 }
 
 int main(void) {
@@ -305,7 +304,32 @@ int main(void) {
         LOG_ERR("Could not mount filesystem!\n");
     }
 
-    ret = update_boot_count();
+    // Configure NVS
+    struct flash_pages_info nvs_info;
+
+    nvs.flash_device = NVS_PARTITION_DEVICE;
+    if (!device_is_ready(nvs.flash_device)) {
+        LOG_ERR("Flash device not ready!");
+        return 0;
+    }
+
+    nvs.offset = NVS_PARTITION_OFFSET;
+    ret = flash_get_page_info_by_offs(nvs.flash_device, nvs.offset, &nvs_info);
+    if (ret) {
+        LOG_ERR("Unable to get page info, error: %d\n", ret);
+        return 0;
+    }
+
+    nvs.sector_size = nvs_info.size;
+    nvs.sector_count = NVS_SECTOR_COUNT;
+
+    ret = nvs_mount(&nvs);
+    if (ret) {
+        LOG_ERR("Flash init failed, error: %d\n", ret);
+        return 0;
+    }
+
+    ret = update_boot_count(&nvs);
     if (ret < 0) {
         LOG_ERR("Could not update boot count!");
     }
