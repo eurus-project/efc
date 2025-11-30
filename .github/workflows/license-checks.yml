@@ -1,0 +1,17 @@
+name: license-checks
+
+on:
+  push:
+
+jobs:
+  license-check:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Check license headers
+      uses: korandoru/hawkeye@v6
+

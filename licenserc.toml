@@ -1,0 +1,53 @@
+baseDir = "."
+
+inlineHeader = """
+This file is part of the efc project <https://github.com/eurus-project/efc/>.
+Copyright (c) ({{props.inceptionYear}} - Present), {{props.copyrightOwner}}.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>.
+"""
+
+strictCheck = true
+
+useDefaultExcludes = true
+
+includes = [
+  "**/*.py",
+  "**/*.c",
+  "**/*.h",
+  "**/*.cpp",
+  "**/*.hpp",
+  "**/*.S",
+  "**/*.s",
+  "**/*.asm",
+  "**/CMakeLists.txt",
+]
+
+excludes = [
+  "tools/mavlink/**"
+]
+
+keywords = ["Copyright", "efc"]
+
+useDefaultMapping = true
+
+additionalHeaders = []
+
+[properties]
+inceptionYear = 2024
+copyrightOwner = "The efc developers"
+
+[git]
+ignore = 'auto'
+attrs = 'disable'
+
