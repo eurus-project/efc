@@ -14,4 +14,3 @@ jobs:
 
     - name: Check license headers
       uses: korandoru/hawkeye@v6
-

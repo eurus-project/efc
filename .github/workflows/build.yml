@@ -28,11 +28,9 @@ jobs:
         run: |
           cd ./efc
           python -m venv python_venv
-          source python_venv/bin/activate
-          pip install -r requirements.txt
-          deactivate
+          ./python_venv/bin/pip install -r requirements.txt
 
       - name: Build project
         run: |
-          west build -b eurus_nexus_v1_1 efc/app
-
+          cd ./efc
+          west build -b eurus_nexus_v1_1 app
