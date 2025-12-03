@@ -38,7 +38,7 @@ Use `west` or CMake to build for one of the supported boards:
 cd ~/eurus
 source .venv/bin/activate
 cd efc
-west build -b blackpill_f411ce app
+west build -b eurus_nexus_v1_1 app
 ```
 
 

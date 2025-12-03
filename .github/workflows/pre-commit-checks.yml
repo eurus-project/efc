@@ -5,13 +5,12 @@ on:
   
 jobs:
   formatting-check:
-    name: format check
     runs-on: ubuntu-24.04
     steps:
-      - name: Install requirements
-        run: |
-          sudo apt update && sudo apt upgrade
-          sudo apt install --no-install-recommends -y git python3-venv
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
 
       - name: Install pre-commit
         run: |   
@@ -19,15 +18,8 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          path: ${{ github.repository }}
 
       - name: Run pre-commit
         run: |
-          cd $GITHUB_WORKSPACE/${{ github.repository }}
           git fetch origin
           pre-commit run --from-ref origin/master --to-ref HEAD --show-diff-on-failure
-
-      
-
-      
