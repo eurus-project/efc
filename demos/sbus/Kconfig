@@ -1,0 +1,3 @@
+# SBUS UART demo configuration
+
+source "Kconfig.zephyr"
