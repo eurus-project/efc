@@ -59,6 +59,7 @@ static int enable_usb_device_next(void) {
 #endif /* defined(CONFIG_USB_DEVICE_STACK_NEXT) */
 
 int main(void) {
+    /*
     if (DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)) {
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
         if (enable_usb_device_next()) {
@@ -70,6 +71,7 @@ int main(void) {
         }
 #endif
     }
+    */
 
     if (!gpio_is_ready_dt(&fw_running_led)) {
         LOG_ERR("The firmware running LED is not ready");
