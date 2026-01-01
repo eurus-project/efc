@@ -15,4 +15,18 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef RADIO_RECEIVER_H
+#define RADIO_RECEIVER_H
+
+#include <zephyr/kernel.h>
+
+struct radio_receiver_data {
+    int32_t roll_rate;
+    int32_t pitch_rate;
+    int32_t throttle;
+    int32_t yaw_rate;
+};
+
 void radio_receiver(void *dummy1, void *dummy2, void *dummy3);
+
+#endif // RADIO_RECEIVER_H

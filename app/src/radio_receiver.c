@@ -21,13 +21,6 @@
 
 #include "radio_receiver.h"
 
-struct radio_receiver_data {
-    int32_t roll_rate;
-    int32_t pitch_rate;
-    int32_t throttle;
-    int32_t yaw_rate;
-};
-
 LOG_MODULE_REGISTER(radio_receiver);
 
 static const struct device *const sbus_dev =
@@ -75,11 +68,14 @@ void radio_receiver(void *dummy1, void *dummy2, void *dummy3) {
     }
 
     while (true) {
+        /*
         k_msgq_get(&sbus_msgq, &read_data, K_FOREVER);
 
         LOG_INF("Received SBUS data:\n"
                 "THR: %d, PITCH_RATE: %d, ROLL_RATE: %d, YAW_RATE: %d\n",
                 read_data.throttle, read_data.pitch_rate, read_data.roll_rate,
                 read_data.yaw_rate);
+        */
+        k_msleep(1000);
     }
 }

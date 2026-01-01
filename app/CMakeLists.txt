@@ -28,10 +28,13 @@ PRIVATE
     src/telemetry_packer.c
     src/telemetry_sender.c
     src/logger.c
+    src/motor_control.c
 )
 
 target_link_libraries(app
 PRIVATE
     ulog
     mavlink
+    esc
+    mixer
 )
