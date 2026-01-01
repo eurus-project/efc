@@ -34,6 +34,7 @@
 #include <zephyr/zbus/zbus.h>
 
 #include "logger.h"
+#include "motor_control.h"
 #include "radio_receiver.h"
 #include "telemetry_packer.h"
 #include "telemetry_sender.h"
@@ -90,6 +91,9 @@ static struct k_thread telemetry_sender_thread;
 
 K_THREAD_STACK_DEFINE(logger_thread_stack, 8192);
 static struct k_thread logger_thread;
+
+K_THREAD_STACK_DEFINE(motor_control_thread_stack, 1024);
+static struct k_thread motor_control_thread;
 
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
 static struct usbd_context *sample_usbd;
@@ -354,6 +358,10 @@ int main(void) {
     k_thread_create(&logger_thread, logger_thread_stack,
                     K_THREAD_STACK_SIZEOF(logger_thread_stack), logger, NULL,
                     NULL, NULL, K_LOWEST_APPLICATION_THREAD_PRIO, 0, K_NO_WAIT);
+
+    k_thread_create(&motor_control_thread, motor_control_thread_stack,
+                    K_THREAD_STACK_SIZEOF(motor_control_thread_stack),
+                    motor_control, NULL, NULL, NULL, 0, 0, K_NO_WAIT);
 
     while (1) {
         ret = gpio_pin_toggle_dt(&fw_running_led);
