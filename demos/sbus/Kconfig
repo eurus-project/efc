@@ -1,0 +1,3 @@
+# SBUS demo configuration
+
+source "Kconfig.zephyr"
