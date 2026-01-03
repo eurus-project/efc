@@ -38,7 +38,7 @@ ZBUS_CHAN_DECLARE(baro_chan);
 
 ZBUS_CHAN_DEFINE(sync_chan, bool, NULL, NULL, ZBUS_OBSERVERS(logger_sub), 0);
 
-ZBUS_SUBSCRIBER_DEFINE(logger_sub, 16);
+ZBUS_SUBSCRIBER_DEFINE_WITH_ENABLE(logger_sub, 16, false);
 
 // Value derrived from BMP280 datasheet (page 15 of 49) for the given sensor
 // configuration.
@@ -161,6 +161,8 @@ void logger(void *dummy1, void *dummy2, void *dummy3) {
     k_timer_init(&sync_timer, sync_notify, NULL);
     k_timer_start(&sync_timer, K_MSEC(CONFIG_APP_DATA_LOGGING_SYNC_INTERVAL),
                   K_MSEC(CONFIG_APP_DATA_LOGGING_SYNC_INTERVAL));
+
+    zbus_obs_set_enable(&logger_sub, true);
 
     while (true) {
         const struct zbus_channel *chan;
