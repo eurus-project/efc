@@ -28,8 +28,6 @@ LOG_MODULE_REGISTER(motor_control);
 extern struct k_msgq sbus_msgq;
 
 void motor_control(void *dummy1, void *dummy2, void *dummy3) {
-    struct radio_receiver_data receiver_data;
-
     ESC_Error_Type status;
     ESC_Inst_Type esc1, esc2, esc3, esc4;
     ESC_Protocol_Type protocol;
@@ -52,7 +50,7 @@ void motor_control(void *dummy1, void *dummy2, void *dummy3) {
     const struct device *pwm_dev = DEVICE_DT_GET(DT_NODELABEL(pwm3));
 
     if (!device_is_ready(pwm_dev))
-        return 0;
+        return;
 
     status = ESC_Init(&esc1, pwm_dev, 1, protocol);
     if (status != ESC_SUCCESS)
@@ -103,16 +101,9 @@ void motor_control(void *dummy1, void *dummy2, void *dummy3) {
         return;
 
     while (true) {
-        if (k_msgq_get(&sbus_msgq, &receiver_data, K_NO_WAIT) == 0) {
-            raw_receiver_input.pitch = receiver_data.pitch_rate;
-            raw_receiver_input.roll = receiver_data.roll_rate;
-            raw_receiver_input.thrust = receiver_data.throttle;
-            raw_receiver_input.yaw = receiver_data.yaw_rate;
-        }
+        k_msgq_get(&sbus_msgq, &raw_receiver_input, K_MSEC(50));
 
-        // Update anyway
+        // Update anyway, even if values are not updated
         MIXER_Execute(&mixer, &raw_receiver_input);
-
-        k_msleep(50);
     }
 }

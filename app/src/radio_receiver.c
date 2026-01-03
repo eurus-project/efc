@@ -19,29 +19,31 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
+#include "mixer.h"
 #include "radio_receiver.h"
 
 LOG_MODULE_REGISTER(radio_receiver);
 
 static const struct device *const sbus_dev =
     DEVICE_DT_GET(DT_CHOSEN(futaba_sbus));
-static struct radio_receiver_data receiver_data;
+
+static MIXER_Raw_Input_Type receiver_data;
 
 K_MSGQ_DEFINE(sbus_msgq, sizeof(struct radio_receiver_data), 10, 1);
 
 static void sbus_event_callback(struct input_event *evt, void *user_data) {
     switch (evt->code) {
     case INPUT_ABS_RX:
-        receiver_data.roll_rate = evt->value;
+        receiver_data.roll = evt->value;
         break;
     case INPUT_ABS_RY:
-        receiver_data.pitch_rate = evt->value;
+        receiver_data.pitch = evt->value;
         break;
     case INPUT_ABS_THROTTLE:
-        receiver_data.throttle = evt->value;
+        receiver_data.thrust = evt->value;
         break;
     case INPUT_ABS_RZ:
-        receiver_data.yaw_rate = evt->value;
+        receiver_data.yaw = evt->value;
         break;
     default:
         break;
@@ -58,8 +60,6 @@ void radio_receiver(void *dummy1, void *dummy2, void *dummy3) {
     ARG_UNUSED(dummy1);
     ARG_UNUSED(dummy2);
     ARG_UNUSED(dummy3);
-
-    struct radio_receiver_data read_data;
 
     if (!device_is_ready(sbus_dev)) {
         LOG_ERR("Radio receiver not found, device operation will proceed "
