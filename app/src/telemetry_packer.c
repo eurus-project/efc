@@ -31,7 +31,7 @@ ZBUS_CHAN_DECLARE(baro_chan);
 ZBUS_CHAN_DEFINE(heartbeat_chan, bool, NULL, NULL,
                  ZBUS_OBSERVERS(telemetry_packer_sub), 0);
 
-ZBUS_SUBSCRIBER_DEFINE(telemetry_packer_sub, 16);
+ZBUS_SUBSCRIBER_DEFINE_WITH_ENABLE(telemetry_packer_sub, 16, false);
 
 const uint8_t telemetry_system_id = 0;
 const uint8_t telemetry_component_id = MAV_COMP_ID_AUTOPILOT1;
@@ -54,6 +54,8 @@ static void heartbeat_notify(struct k_timer *timer_id) {
 void telemetry_packer(void *dummy1, void *dummy2, void *dummy3) {
     k_timer_init(&heartbeat_timer, heartbeat_notify, NULL);
     k_timer_start(&heartbeat_timer, K_SECONDS(1), K_SECONDS(1));
+
+    zbus_obs_set_enable(&telemetry_packer_sub, true);
 
     while (true) {
         const struct zbus_channel *chan;
