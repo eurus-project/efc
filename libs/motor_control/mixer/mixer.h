@@ -22,11 +22,11 @@
 #include <stdio.h>
 #include <zephyr/kernel.h>
 
-#define MAX_MOTOR_INSTANCES 6
-
 typedef enum {
     MIXER_SUCCESS = 0,
+    MIXER_INIT_ERROR,
     MIXER_ESC_ERROR,
+    MIXER_INVALID_CFG,
 } MIXER_Error_Type;
 
 typedef enum {
@@ -54,6 +54,8 @@ typedef struct {
     ESC_Inst_Type motor_arr[MAX_MOTOR_INSTANCES];
     uint8_t motor_instances;
     MIXER_UAV_Cfg_Type uav_config;
+    bool initialized;
+    uint8_t max_motor_num;
 } MIXER_Inst_Type;
 
 MIXER_Error_Type MIXER_AddMotorInstance(MIXER_Inst_Type *mixer,

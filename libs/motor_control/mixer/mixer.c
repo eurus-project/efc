@@ -30,37 +30,62 @@ static float limit_min_thrust_values(float mixer_calcualated_val, float thrust);
 
 MIXER_Error_Type MIXER_AddMotorInstance(MIXER_Inst_Type *mixer,
                                         ESC_Inst_Type *esc) {
+    if (mixer == NULL || esc == NULL) {
+        return MIXER_INIT_ERROR;
+    }
+
+    if (!mixer->initialized) {
+        return MIXER_INIT_ERROR;
+    }
+
     if (!esc->initialized) {
         return MIXER_ESC_ERROR;
     }
 
-    static uint8_t motor_count = 0;
+    mixer->motor_arr[mixer->motor_instances] = *esc;
+    mixer->motor_instances++;
 
-    mixer->motor_arr[motor_count] = *esc;
-
-    if (motor_count == 0) {
-        mixer->motor_instances = 1;
-    } else if (mixer->motor_instances < MAX_MOTOR_INSTANCES) {
-        mixer->motor_instances++;
-    } else {
-        return MIXER_ESC_ERROR;
+    if (mixer->motor_instances > mixer->max_motor_num) {
+        return MIXER_INIT_ERROR;
     }
-
-    motor_count++;
 
     return MIXER_SUCCESS;
 }
 
 MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
                             MIXER_UAV_Cfg_Type uav_cfg) {
-    /* Add necessary checks here ... */
 
-    /* UAV geometrical configuration will be fixed to quadrotor X configuration
-       in the first editions of this feature. uav_config will be used in future
-       for support of multiple UAV geometrical configurations. */
+    if (mixer == NULL) {
+        return MIXER_INIT_ERROR;
+    }
+
+    if (uav_cfg < MIXER_UAV_CFG_QUADROTOR_X ||
+        uav_cfg > MIXER_UAV_CFG_HEXAROTOR_CROSS) {
+        return MIXER_INVALID_CFG;
+    }
+
     mixer->uav_config = uav_cfg;
+    mixer->motor_instances = 0;
 
-    return MIXER_SUCCESS;
+    MIXER_Error_Type ret = MIXER_SUCCESS;
+
+    switch (uav_cfg) {
+    case MIXER_UAV_CFG_QUADROTOR_X:
+    case MIXER_UAV_CFG_QUADROTOR_CROSS:
+        mixer->max_motor_num = 4;
+        break;
+    case MIXER_UAV_CFG_HEXAROTOR_X:
+    case MIXER_UAV_CFG_HEXAROTOR_CROSS:
+        mixer->max_motor_num = 6;
+        break;
+    default:
+        ret = MIXER_INVALID_CFG;
+        mixer->initialized = false;
+        break;
+    }
+
+    mixer->initialized = true;
+    return ret;
 }
 
 MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
