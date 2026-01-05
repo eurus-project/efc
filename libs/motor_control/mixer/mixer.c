@@ -106,7 +106,7 @@ MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
     if (esc_status < 0)
         return MIXER_ESC_ERROR;
 
-    return ESC_SUCCESS;
+    return MIXER_SUCCESS;
 }
 
 static void normalize_stick_input(const MIXER_Raw_Input_Type *mixer_raw,
