@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include <zephyr/kernel.h>
 
+#define MAX_MOTOR_INSTANCES 6
+
 typedef enum {
     MIXER_SUCCESS = 0,
     MIXER_INIT_ERROR,

@@ -42,18 +42,19 @@ MIXER_Error_Type MIXER_AddMotorInstance(MIXER_Inst_Type *mixer,
         return MIXER_ESC_ERROR;
     }
 
-    mixer->motor_arr[mixer->motor_instances] = *esc;
-    mixer->motor_instances++;
-
-    if (mixer->motor_instances > mixer->max_motor_num) {
+    if (mixer->motor_instances == mixer->max_motor_num) {
         return MIXER_INIT_ERROR;
     }
+
+    mixer->motor_arr[mixer->motor_instances] = *esc;
+    mixer->motor_instances++;
 
     return MIXER_SUCCESS;
 }
 
 MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
                             MIXER_UAV_Cfg_Type uav_cfg) {
+    MIXER_Error_Type ret = MIXER_SUCCESS;
 
     if (mixer == NULL) {
         return MIXER_INIT_ERROR;
@@ -67,8 +68,6 @@ MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
     mixer->uav_config = uav_cfg;
     mixer->motor_instances = 0;
 
-    MIXER_Error_Type ret = MIXER_SUCCESS;
-
     switch (uav_cfg) {
     case MIXER_UAV_CFG_QUADROTOR_X:
     case MIXER_UAV_CFG_QUADROTOR_CROSS:
@@ -80,11 +79,15 @@ MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
         break;
     default:
         ret = MIXER_INVALID_CFG;
-        mixer->initialized = false;
         break;
     }
 
-    mixer->initialized = true;
+    if (ret == MIXER_SUCCESS) {
+        mixer->initialized = true;
+    } else {
+        mixer->initialized = false;
+    }
+
     return ret;
 }
 
