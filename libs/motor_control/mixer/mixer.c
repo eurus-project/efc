@@ -120,26 +120,25 @@ static void normalize_stick_input(const MIXER_Raw_Input_Type *mixer_raw,
 #endif
 
 #ifdef CONFIG_MIXER_MAXIMAL_RECEIVER_DATA_OFFSET
-    max_receiver_val = CONFIG_MIXER_MAXIMAL_RECEIVER_DATA_VALUE
+    max_receiver_val = CONFIG_MIXER_MAXIMAL_RECEIVER_DATA_VALUE;
 #else
     max_receiver_val = MIXER_RECEIVER_DEFAULT_MAX_VALUE;
 #endif
 
 #ifdef CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_OFFSET
-        neutral_receiver_val = CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_VALUE
+    neutral_receiver_val = CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_VALUE;
 #else
     neutral_receiver_val = MIXER_RECEIVER_DEFAULT_NEUTRAL_VALUE;
 #endif
 
-        /* Map raw roll values:
-            [min_receiver_val, neutral_receiver_val] -> [-1.0, 0.0] and
-            [neutral_receiver_val, max_receiver_val] -> [0.0, 1.0]
-        */
-        if (mixer_raw->roll < neutral_receiver_val) {
+    /* Map raw roll values:
+        [min_receiver_val, neutral_receiver_val] -> [-1.0, 0.0] and
+        [neutral_receiver_val, max_receiver_val] -> [0.0, 1.0]
+    */
+    if (mixer_raw->roll < neutral_receiver_val) {
         mixer_mapped->roll = (float)(mixer_raw->roll - neutral_receiver_val) /
                              (float)(neutral_receiver_val - min_receiver_val);
-    }
-    else {
+    } else {
         mixer_mapped->roll = (float)(mixer_raw->roll - neutral_receiver_val) /
                              (float)(max_receiver_val - neutral_receiver_val);
     }
