@@ -41,6 +41,38 @@ cd efc
 west build -b eurus_nexus_v1_1 app
 ```
 
+## EFC SITL
+SITL (Software In The Loop) for the EFC autopilot runs the EFC flight control software on a host machine (PC) while interfacing with a flight simulator that models vehicle dynamics and the environment. The simulator provides synthetic sensor data to EFC, and EFC computes and returns actuator commands, forming a closed control loop. This setup enables realistic testing and validation of the EFC autopilot without physical hardware.  
+EFC SITL is designed for the EFC autopilot to interact with [jMAVSim](https://github.com/PX4/jMAVSim) simulator.
+
+## Build EFC SITL
+
+### EFC SITL build dependencies
+
+EFC SITL depends on [libuv](https://libuv.org/); therefore, `libuv` must be installed on the host system.  
+On Debian-based systems, `libuv` can be installed using:
+```bash
+apt-get install libuv1-dev
+```
+
+### EFC SITL build procedure
+
+1. Create a efc-specific virtual environment and install the required packages (if it hasn't already been created):
+```bash
+cd ~/eurus/efc
+python -m venv python_venv
+source python_venv/bin/activate
+pip install -r requirements.txt
+deactivate
+```
+> Note: Sourcing the efc virtual environment will not be necessary after the first time as CMake will use the virtual environment python binary.
+
+2. Use CMake to build EFC SITL
+```bash
+cd ~/eurus/efc
+cmake -B build -S sitl
+cmake --build build 
+```
 
 ## Contributing
 The `efc` project uses code formatting rules described in `.clang-format`.
