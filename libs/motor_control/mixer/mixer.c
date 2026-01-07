@@ -53,7 +53,7 @@ MIXER_Error_Type MIXER_AddMotor(MIXER_Inst_Type *mixer, ESC_Inst_Type *esc) {
 
 MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
                             MIXER_UAV_Cfg_Type uav_cfg) {
-    MIXER_Error_Type ret = MIXER_SUCCESS;
+    MIXER_Error_Type ret = MIXER_INIT_ERROR;
 
     if (mixer == NULL) {
         return MIXER_INIT_ERROR;
@@ -71,10 +71,12 @@ MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
     case MIXER_UAV_CFG_QUADROTOR_X:
     case MIXER_UAV_CFG_QUADROTOR_CROSS:
         mixer->max_motor_num = 4;
+        ret = MIXER_SUCCESS;
         break;
     case MIXER_UAV_CFG_HEXAROTOR_X:
     case MIXER_UAV_CFG_HEXAROTOR_CROSS:
         mixer->max_motor_num = 6;
+        ret = MIXER_SUCCESS;
         break;
     default:
         ret = MIXER_INVALID_CFG;
