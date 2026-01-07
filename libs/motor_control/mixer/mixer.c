@@ -28,8 +28,7 @@ static void normalize_stick_input(const MIXER_Raw_Input_Type *mixer_raw,
 
 static float limit_min_thrust_values(float mixer_calcualated_val, float thrust);
 
-MIXER_Error_Type MIXER_AddMotorInstance(MIXER_Inst_Type *mixer,
-                                        ESC_Inst_Type *esc) {
+MIXER_Error_Type MIXER_AddMotor(MIXER_Inst_Type *mixer, ESC_Inst_Type *esc) {
     if (mixer == NULL || esc == NULL) {
         return MIXER_INIT_ERROR;
     }

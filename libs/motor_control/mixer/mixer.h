@@ -60,8 +60,7 @@ typedef struct {
     uint8_t max_motor_num;
 } MIXER_Inst_Type;
 
-MIXER_Error_Type MIXER_AddMotorInstance(MIXER_Inst_Type *mixer,
-                                        ESC_Inst_Type *esc);
+MIXER_Error_Type MIXER_AddMotor(MIXER_Inst_Type *mixer, ESC_Inst_Type *esc);
 
 MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer, MIXER_UAV_Cfg_Type uav_cfg);
 
