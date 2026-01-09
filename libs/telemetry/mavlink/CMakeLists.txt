@@ -49,6 +49,7 @@ STATIC
 
 target_include_directories(mavlink
 SYSTEM PUBLIC
+    include
     ${GENERATED_DIR}
 )
 

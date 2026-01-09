@@ -15,16 +15,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "mavlink_custom.h"
+#ifndef __MAVLINK_CUSTOM_H__
+#define __MAVLINK_CUSTOM_H__
 
-/* Global status and buffer instances for each channel */
-static mavlink_status_t chan_statuses[MAVLINK_COMM_NUM_BUFFERS];
-static mavlink_message_t chan_buffers[MAVLINK_COMM_NUM_BUFFERS];
+#include "mavlink_types.h"
 
-mavlink_status_t *mavlink_get_channel_status(uint8_t chan) {
-    return &chan_statuses[chan];
-}
+/* Prototypes must be visible to anyone including MAVLink */
+mavlink_status_t *mavlink_get_channel_status(uint8_t chan);
+mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan);
 
-mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan) {
-    return &chan_buffers[chan];
-}
+#endif
