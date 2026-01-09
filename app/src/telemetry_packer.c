@@ -19,7 +19,11 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
 
+// MAVLink headers
+// clang-format off
+#include "mavlink_custom.h" // Needs to be included before any MAVLink header inclusion
 #include "common/mavlink.h"
+// clang-format on
 
 #include "types.h"
 
