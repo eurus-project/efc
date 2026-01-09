@@ -28,10 +28,10 @@
 #include "esc.h"
 #include "mixer.h"
 
-LOG_MODULE_REGISTER(main);
+LOG_MODULE_REGISTER(mixer_demo, LOG_LEVEL_INF);
 
 #define ESC_ARMED_INDICATOR_MS 100
-#define MIXER_TIME_INCREMENT 2
+#define MIXER_TIME_INCREMENT 1
 
 // This LED simply blinks at an interval, indicating visually that the firmware
 // is running If anything causes the whole firmware to abort, it will be
@@ -59,18 +59,13 @@ static int enable_usb_device_next(void) {
 }
 #endif /* defined(CONFIG_USB_DEVICE_STACK_NEXT) */
 
-static void reset_mixer_vals(MIXER_Raw_Input_Type *mixer) {
-    int32_t neutral_receiver_val;
-    int32_t thrust_val_50_percent = 1024;
-#ifdef CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_OFFSET
-    neutral_receiver_val = CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_VALUE
-#else
-    neutral_receiver_val = 1024;
-#endif
-                               mixer->roll = neutral_receiver_val;
-    mixer->pitch = neutral_receiver_val;
-    mixer->yaw = neutral_receiver_val;
-    mixer->thrust = thrust_val_50_percent;
+// Reset mixer inputs to neutral/hover values
+// Roll/Pitch/Yaw at 0.0 (neutral), Thrust at 0.5 (50% hover)
+static void reset_mixer_vals(MIXER_Input_Type *mixer) {
+    mixer->roll = 0.0f;   // Neutral: no roll
+    mixer->pitch = 0.0f;  // Neutral: no pitch
+    mixer->yaw = 0.0f;    // Neutral: no yaw
+    mixer->thrust = 0.5f; // 50% throttle (hover)
 }
 
 int main(void) {
@@ -103,15 +98,15 @@ int main(void) {
     ESC_Protocol_Type protocol;
 
     /* MIXER variables */
-    MIXER_Inst_Type mixer;
+    MIXER_Inst_Type mixer = {0};
     MIXER_UAV_Cfg_Type mixer_uav_geom_cfg;
 
-    /* Demo test variables */
-    MIXER_Raw_Input_Type raw_receiver_input;
-    raw_receiver_input.roll = 0;
-    raw_receiver_input.pitch = 0;
-    raw_receiver_input.yaw = 0;
-    raw_receiver_input.thrust = 0;
+    /* Demo test variables - normalized control inputs */
+    MIXER_Input_Type control_input;
+    control_input.roll = 0.0f;   // -1.0 to 1.0
+    control_input.pitch = 0.0f;  // -1.0 to 1.0
+    control_input.yaw = 0.0f;    // -1.0 to 1.0
+    control_input.thrust = 0.0f; // 0.0 to 1.0
 
     /* ESC Initialization */
 #if CONFIG_ESC_PWM
@@ -143,7 +138,7 @@ int main(void) {
         return 0;
 
     /* Arming procedure */
-    printk("ESC Arming...\n");
+    LOG_INF("ESC Arming...\n");
 
     status = ESC_Arm(&esc1); // Motor 1 ESC
     if (status != ESC_SUCCESS)
@@ -158,7 +153,7 @@ int main(void) {
     if (status != ESC_SUCCESS)
         return 0;
 
-    printk("ESC's has been armed.\n");
+    LOG_INF("ESC's has been armed.\n");
     for (int i = 0; i < 10; i++) {
         gpio_pin_toggle_dt(&fw_running_led);
         k_msleep(ESC_ARMED_INDICATOR_MS);
@@ -176,6 +171,9 @@ int main(void) {
     mixer_uav_geom_cfg = MIXER_UAV_CFG_HEXAROTOR_CROSS;
 #endif
 
+    if (MIXER_Init(&mixer, mixer_uav_geom_cfg) != MIXER_SUCCESS)
+        return 0;
+
     if (MIXER_AddMotor(&mixer, &esc1) != MIXER_SUCCESS)
         return 0;
     if (MIXER_AddMotor(&mixer, &esc2) != MIXER_SUCCESS)
@@ -185,67 +183,90 @@ int main(void) {
     if (MIXER_AddMotor(&mixer, &esc4) != MIXER_SUCCESS)
         return 0;
 
-    if (MIXER_Init(&mixer, mixer_uav_geom_cfg) != MIXER_SUCCESS)
-        return 0;
-
     while (1) {
-        // Roll
-        printk("Roll angle:");
-        reset_mixer_vals(&raw_receiver_input);
+        // Roll test: sweep from -1.0 (left) to +1.0 (right)
+        LOG_INF("Testing Roll...\n");
+        reset_mixer_vals(&control_input);
         k_msleep(MIXER_TIME_INCREMENT * 10);
-        for (int i = 1024; i < 2047; i++) {
-            raw_receiver_input.roll = i;
-            MIXER_Execute(&mixer, &raw_receiver_input);
+        // Sweep from 0.0 to +1.0 (roll right)
+        for (float roll = 0.0f; roll <= 1.0f; roll += 0.01f) {
+            control_input.roll = roll;
+            MIXER_Execute(&mixer, &control_input);
             k_msleep(MIXER_TIME_INCREMENT);
         }
-        for (int i = 2047; i > 0; i--) {
-            raw_receiver_input.roll = i;
-            MIXER_Execute(&mixer, &raw_receiver_input);
+        // Sweep from +1.0 to -1.0 (roll left)
+        for (float roll = 1.0f; roll >= -1.0f; roll -= 0.01f) {
+            control_input.roll = roll;
+            MIXER_Execute(&mixer, &control_input);
+            k_msleep(MIXER_TIME_INCREMENT);
+        }
+        // Return to neutral
+        for (float roll = -1.0f; roll <= 0.0f; roll += 0.01f) {
+            control_input.roll = roll;
+            MIXER_Execute(&mixer, &control_input);
             k_msleep(MIXER_TIME_INCREMENT);
         }
 
-        // Pitch
-        printk("Pitch angle:");
-        reset_mixer_vals(&raw_receiver_input);
+        // Pitch test: sweep from -1.0 (backward) to +1.0 (forward)
+        LOG_INF("Testing Pitch...\n");
+        reset_mixer_vals(&control_input);
         k_msleep(MIXER_TIME_INCREMENT * 10);
-        for (int i = 1024; i < 2047; i++) {
-            raw_receiver_input.pitch = i;
-            MIXER_Execute(&mixer, &raw_receiver_input);
+        // Sweep from 0.0 to +1.0 (pitch forward)
+        for (float pitch = 0.0f; pitch <= 1.0f; pitch += 0.01f) {
+            control_input.pitch = pitch;
+            MIXER_Execute(&mixer, &control_input);
             k_msleep(MIXER_TIME_INCREMENT);
         }
-        for (int i = 2047; i > 0; i--) {
-            raw_receiver_input.pitch = i;
-            MIXER_Execute(&mixer, &raw_receiver_input);
+        // Sweep from +1.0 to -1.0 (pitch backward)
+        for (float pitch = 1.0f; pitch >= -1.0f; pitch -= 0.01f) {
+            control_input.pitch = pitch;
+            MIXER_Execute(&mixer, &control_input);
+            k_msleep(MIXER_TIME_INCREMENT);
+        }
+        // Return to neutral
+        for (float pitch = -1.0f; pitch <= 0.0f; pitch += 0.01f) {
+            control_input.pitch = pitch;
+            MIXER_Execute(&mixer, &control_input);
             k_msleep(MIXER_TIME_INCREMENT);
         }
 
-        // Yaw
-        printk("Yaw angle:");
-        reset_mixer_vals(&raw_receiver_input);
+        // Yaw test: sweep from -1.0 (left) to +1.0 (right)
+        LOG_INF("Testing Yaw...\n");
+        reset_mixer_vals(&control_input);
         k_msleep(MIXER_TIME_INCREMENT * 10);
-        for (int i = 1024; i < 2047; i++) {
-            raw_receiver_input.yaw = i;
-            MIXER_Execute(&mixer, &raw_receiver_input);
+        // Sweep from 0.0 to +1.0 (yaw right)
+        for (float yaw = 0.0f; yaw <= 1.0f; yaw += 0.01f) {
+            control_input.yaw = yaw;
+            MIXER_Execute(&mixer, &control_input);
             k_msleep(MIXER_TIME_INCREMENT);
         }
-        for (int i = 2047; i > 0; i--) {
-            raw_receiver_input.yaw = i;
-            MIXER_Execute(&mixer, &raw_receiver_input);
+        // Sweep from +1.0 to -1.0 (yaw left)
+        for (float yaw = 1.0f; yaw >= -1.0f; yaw -= 0.01f) {
+            control_input.yaw = yaw;
+            MIXER_Execute(&mixer, &control_input);
+            k_msleep(MIXER_TIME_INCREMENT);
+        }
+        // Return to neutral
+        for (float yaw = -1.0f; yaw <= 0.0f; yaw += 0.01f) {
+            control_input.yaw = yaw;
+            MIXER_Execute(&mixer, &control_input);
             k_msleep(MIXER_TIME_INCREMENT);
         }
 
-        // Thrust
-        printk("Thrust:");
-        reset_mixer_vals(&raw_receiver_input);
+        // Thrust test: sweep from 0.0 (min) to 1.0 (max)
+        LOG_INF("Testing Thrust...\n");
+        reset_mixer_vals(&control_input);
         k_msleep(MIXER_TIME_INCREMENT * 10);
-        for (int i = 0; i < 2047; i++) {
-            raw_receiver_input.thrust = i;
-            MIXER_Execute(&mixer, &raw_receiver_input);
+        // Ramp up from 0.0 to 1.0
+        for (float thrust = 0.0f; thrust <= 1.0f; thrust += 0.005f) {
+            control_input.thrust = thrust;
+            MIXER_Execute(&mixer, &control_input);
             k_msleep(MIXER_TIME_INCREMENT);
         }
-        for (int i = 2047; i > 0; i--) {
-            raw_receiver_input.thrust = i;
-            MIXER_Execute(&mixer, &raw_receiver_input);
+        // Ramp down from 1.0 to 0.0
+        for (float thrust = 1.0f; thrust >= 0.0f; thrust -= 0.005f) {
+            control_input.thrust = thrust;
+            MIXER_Execute(&mixer, &control_input);
             k_msleep(MIXER_TIME_INCREMENT);
         }
     }
