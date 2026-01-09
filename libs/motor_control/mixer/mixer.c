@@ -17,16 +17,16 @@
 
 #include "mixer.h"
 #include <stdio.h>
+#include <string.h>
 #include <zephyr/kernel.h>
 
-#define MIXER_RECEIVER_DEFAULT_MIN_VALUE 0.0f
-#define MIXER_RECEIVER_DEFAULT_MAX_VALUE 2047.0f
-#define MIXER_RECEIVER_DEFAULT_NEUTRAL_VALUE 1024.0f
-
-static void normalize_stick_input(const MIXER_Raw_Input_Type *mixer_raw,
-                                  MIXER_Mapped_Input_Type *mixer_mapped);
-
-static float limit_min_thrust_values(float mixer_calcualated_val, float thrust);
+static void setup_motor_factors(MIXER_Inst_Type *mixer);
+static MIXER_Error_Type validate_mixer_input(const MIXER_Input_Type *input);
+static void calculate_motor_outputs(MIXER_Inst_Type *mixer,
+                                    const MIXER_Input_Type *input);
+static void normalize_motor_outputs(MIXER_Inst_Type *mixer);
+static MIXER_Error_Type apply_motor_outputs(MIXER_Inst_Type *mixer);
+static MIXER_Error_Type validate_mixer_geom_cfg(MIXER_UAV_Cfg_Type cfg);
 
 MIXER_Error_Type MIXER_AddMotor(MIXER_Inst_Type *mixer, ESC_Inst_Type *esc) {
     if (mixer == NULL || esc == NULL) {
@@ -59,13 +59,17 @@ MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
         return MIXER_INIT_ERROR;
     }
 
-    if (uav_cfg < MIXER_UAV_CFG_QUADROTOR_X ||
-        uav_cfg > MIXER_UAV_CFG_HEXAROTOR_CROSS) {
+    if (validate_mixer_geom_cfg(uav_cfg) != MIXER_SUCCESS) {
         return MIXER_INVALID_CFG;
     }
 
-    mixer->uav_config = uav_cfg;
+    memset(mixer->motor_arr, 0, sizeof(mixer->motor_arr));
+    memset(mixer->motor_factors, 0, sizeof(mixer->motor_factors));
+    memset(mixer->motor_outputs, 0, sizeof(mixer->motor_outputs));
     mixer->motor_instances = 0;
+    mixer->max_motor_num = 0;
+    mixer->uav_config = uav_cfg;
+    mixer->initialized = false;
 
     switch (uav_cfg) {
     case MIXER_UAV_CFG_QUADROTOR_X:
@@ -85,6 +89,7 @@ MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
 
     if (ret == MIXER_SUCCESS) {
         mixer->initialized = true;
+        setup_motor_factors(mixer);
     } else {
         mixer->initialized = false;
     }
@@ -93,149 +98,151 @@ MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
 }
 
 MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
-                               MIXER_Raw_Input_Type *mixer_raw) {
-    /* Quadrotor X multirotor configuration fixed  */
-    float m1 = 0, m2 = 0, m3 = 0, m4 = 0;
-    ESC_Error_Type esc_status;
-    MIXER_Mapped_Input_Type mixer_mapped;
+                               const MIXER_Input_Type *mixer_in) {
+    if (mixer == NULL || mixer_in == NULL) {
+        return MIXER_INIT_ERROR;
+    }
 
-    /* Remapping the raw values to ESC-compatible ones */
-    normalize_stick_input(mixer_raw, &mixer_mapped);
+    if (!mixer->initialized) {
+        return MIXER_INIT_ERROR;
+    }
 
-    // TODO: Add checks here for edge-cases like R=P=0 and Y>T
+    // Ensure enough motors have been configured based on geometrical config
+    if (mixer->motor_instances != mixer->max_motor_num) {
+        return MIXER_INIT_ERROR;
+    }
+
+    if (validate_mixer_input(mixer_in) == MIXER_OUT_OF_BOUND_VALS) {
+        return MIXER_OUT_OF_BOUND_VALS;
+    }
+
+    calculate_motor_outputs(mixer, mixer_in);
+
+    normalize_motor_outputs(mixer);
+
+    return apply_motor_outputs(mixer);
+}
+
+static void setup_motor_factors(MIXER_Inst_Type *mixer) {
     switch (mixer->uav_config) {
     case MIXER_UAV_CFG_QUADROTOR_X:
-        m1 = limit_min_thrust_values(mixer_mapped.thrust - mixer_mapped.roll +
-                                         mixer_mapped.pitch + mixer_mapped.yaw,
-                                     mixer_mapped.thrust);
-        m2 = limit_min_thrust_values(mixer_mapped.thrust + mixer_mapped.roll -
-                                         mixer_mapped.pitch + mixer_mapped.yaw,
-                                     mixer_mapped.thrust);
-        m3 = limit_min_thrust_values(mixer_mapped.thrust + mixer_mapped.roll +
-                                         mixer_mapped.pitch - mixer_mapped.yaw,
-                                     mixer_mapped.thrust);
-        m4 = limit_min_thrust_values(mixer_mapped.thrust - mixer_mapped.roll -
-                                         mixer_mapped.pitch - mixer_mapped.yaw,
-                                     mixer_mapped.thrust);
+        // Motor 0 (Front Right): +roll, +pitch, +yaw
+        mixer->motor_factors[0].roll_factor = -1.0f;
+        mixer->motor_factors[0].pitch_factor = 1.0f;
+        mixer->motor_factors[0].yaw_factor = 1.0f;
+        mixer->motor_factors[0].throttle_factor = 1.0f;
+
+        // Motor 1 (Rear Left): -roll, -pitch, +yaw
+        mixer->motor_factors[1].roll_factor = 1.0f;
+        mixer->motor_factors[1].pitch_factor = -1.0f;
+        mixer->motor_factors[1].yaw_factor = 1.0f;
+        mixer->motor_factors[1].throttle_factor = 1.0f;
+
+        // Motor 2 (Front Left): -roll, +pitch, -yaw
+        mixer->motor_factors[2].roll_factor = 1.0f;
+        mixer->motor_factors[2].pitch_factor = 1.0f;
+        mixer->motor_factors[2].yaw_factor = -1.0f;
+        mixer->motor_factors[2].throttle_factor = 1.0f;
+
+        // Motor 3 (Rear Right): +roll, -pitch, -yaw
+        mixer->motor_factors[3].roll_factor = -1.0f;
+        mixer->motor_factors[3].pitch_factor = -1.0f;
+        mixer->motor_factors[3].yaw_factor = -1.0f;
+        mixer->motor_factors[3].throttle_factor = 1.0f;
         break;
 
     default:
         break;
     }
-    esc_status = ESC_SetSpeed(&mixer->motor_arr[0], m1);
-    if (esc_status < 0)
-        return MIXER_ESC_ERROR;
-    esc_status = ESC_SetSpeed(&mixer->motor_arr[1], m2);
-    if (esc_status < 0)
-        return MIXER_ESC_ERROR;
-    esc_status = ESC_SetSpeed(&mixer->motor_arr[2], m3);
-    if (esc_status < 0)
-        return MIXER_ESC_ERROR;
-    esc_status = ESC_SetSpeed(&mixer->motor_arr[3], m4);
-    if (esc_status < 0)
-        return MIXER_ESC_ERROR;
+}
 
+static MIXER_Error_Type validate_mixer_input(const MIXER_Input_Type *input) {
+    if (input == NULL) {
+        return MIXER_OUT_OF_BOUND_VALS;
+    }
+
+    if (input->thrust < 0.0f || input->thrust > 1.0f || input->roll < -1.0f ||
+        input->roll > 1.0f || input->pitch < -1.0f || input->pitch > 1.0f ||
+        input->yaw < -1.0f || input->yaw > 1.0f) {
+        return MIXER_OUT_OF_BOUND_VALS;
+    } else {
+        return MIXER_SUCCESS;
+    }
+}
+
+static void calculate_motor_outputs(MIXER_Inst_Type *mixer,
+                                    const MIXER_Input_Type *input) {
+    for (uint8_t i = 0; i < mixer->motor_instances; i++) {
+        mixer->motor_outputs[i] =
+            input->thrust * mixer->motor_factors[i].throttle_factor +
+            input->roll * mixer->motor_factors[i].roll_factor +
+            input->pitch * mixer->motor_factors[i].pitch_factor +
+            input->yaw * mixer->motor_factors[i].yaw_factor;
+    }
+}
+
+static MIXER_Error_Type apply_motor_outputs(MIXER_Inst_Type *mixer) {
+    for (uint8_t i = 0; i < mixer->motor_instances; i++) {
+        ESC_Error_Type esc_status =
+            ESC_SetSpeed(&mixer->motor_arr[i], mixer->motor_outputs[i]);
+        if (esc_status < 0) {
+            return MIXER_ESC_ERROR;
+        }
+    }
     return MIXER_SUCCESS;
 }
 
-static void normalize_stick_input(const MIXER_Raw_Input_Type *mixer_raw,
-                                  MIXER_Mapped_Input_Type *mixer_mapped) {
-    int32_t min_receiver_val, max_receiver_val, neutral_receiver_val;
-
-#ifdef CONFIG_MIXER_MINIMAL_RECEIVER_DATA_OFFSET
-    min_receiver_val = CONFIG_MIXER_MINIMAL_RECEIVER_DATA_VALUE;
-#else
-    min_receiver_val = MIXER_RECEIVER_DEFAULT_MIN_VALUE;
-#endif
-
-#ifdef CONFIG_MIXER_MAXIMAL_RECEIVER_DATA_OFFSET
-    max_receiver_val = CONFIG_MIXER_MAXIMAL_RECEIVER_DATA_VALUE;
-#else
-    max_receiver_val = MIXER_RECEIVER_DEFAULT_MAX_VALUE;
-#endif
-
-#ifdef CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_OFFSET
-    neutral_receiver_val = CONFIG_MIXER_NEUTRAL_RECEIVER_DATA_VALUE;
-#else
-    neutral_receiver_val = MIXER_RECEIVER_DEFAULT_NEUTRAL_VALUE;
-#endif
-
-    /* Map raw roll values:
-        [min_receiver_val, neutral_receiver_val] -> [-1.0, 0.0] and
-        [neutral_receiver_val, max_receiver_val] -> [0.0, 1.0]
-    */
-    if (mixer_raw->roll < neutral_receiver_val) {
-        mixer_mapped->roll = (float)(mixer_raw->roll - neutral_receiver_val) /
-                             (float)(neutral_receiver_val - min_receiver_val);
-    } else {
-        mixer_mapped->roll = (float)(mixer_raw->roll - neutral_receiver_val) /
-                             (float)(max_receiver_val - neutral_receiver_val);
+static void normalize_motor_outputs(MIXER_Inst_Type *mixer) {
+    if (mixer->motor_instances == 0) {
+        return;
     }
 
-    // Clamp calculated values
-    if (mixer_mapped->roll < -1.0f)
-        mixer_mapped->roll = -1.0f;
-    if (mixer_mapped->roll > 1.0f)
-        mixer_mapped->roll = 1.0f;
+    // Find min and max outputs
+    float max_output = mixer->motor_outputs[0];
+    float min_output = mixer->motor_outputs[0];
 
-    /* Map raw pitch values:
-        [min_receiver_val, neutral_receiver_val] -> [-1.0, 0.0] and
-        [neutral_receiver_val, max_receiver_val] -> [0.0, 1.0]
-    */
-    if (mixer_raw->pitch < neutral_receiver_val) {
-        mixer_mapped->pitch = (float)(mixer_raw->pitch - neutral_receiver_val) /
-                              (float)(neutral_receiver_val - min_receiver_val);
-    } else {
-        mixer_mapped->pitch = (float)(mixer_raw->pitch - neutral_receiver_val) /
-                              (float)(max_receiver_val - neutral_receiver_val);
+    for (uint8_t i = 1; i < mixer->motor_instances; i++) {
+        if (mixer->motor_outputs[i] > max_output) {
+            max_output = mixer->motor_outputs[i];
+        }
+        if (mixer->motor_outputs[i] < min_output) {
+            min_output = mixer->motor_outputs[i];
+        }
     }
 
-    // Clamp calculated values
-    if (mixer_mapped->pitch < -1.0f)
-        mixer_mapped->pitch = -1.0f;
-    if (mixer_mapped->pitch > 1.0f)
-        mixer_mapped->pitch = 1.0f;
-
-    /* Map raw yaw values:
-        [min_receiver_val, neutral_receiver_val] -> [-1.0, 0.0] and
-        [neutral_receiver_val, max_receiver_val] -> [0.0, 1.0]
-    */
-    if (mixer_raw->yaw < neutral_receiver_val) {
-        mixer_mapped->yaw = (float)(mixer_raw->yaw - neutral_receiver_val) /
-                            (float)(neutral_receiver_val - min_receiver_val);
-    } else {
-        mixer_mapped->yaw = (float)(mixer_raw->yaw - neutral_receiver_val) /
-                            (float)(max_receiver_val - neutral_receiver_val);
+    // If max exceeds 1.0, scale all down proportionally
+    if (max_output > 1.0f) {
+        float scale = 1.0f / max_output;
+        for (uint8_t i = 0; i < mixer->motor_instances; i++) {
+            mixer->motor_outputs[i] *= scale;
+        }
+        // Recalculate min after scaling
+        min_output *= scale;
     }
 
-    // Clamp calculated values
-    if (mixer_mapped->yaw < -1.0f)
-        mixer_mapped->yaw = -1.0f;
-    if (mixer_mapped->yaw > 1.0f)
-        mixer_mapped->yaw = 1.0f;
+    // If min below 0.0, shift all up
+    if (min_output < 0.0f) {
+        for (uint8_t i = 0; i < mixer->motor_instances; i++) {
+            mixer->motor_outputs[i] -= min_output;
+        }
+    }
 
-    /* Map raw thrust values:
-        [min_receiver_val, max_receiver_val] -> [0.0, 1.0]
-    */
-    mixer_mapped->thrust = (float)(mixer_raw->thrust - min_receiver_val) /
-                           (float)(max_receiver_val - min_receiver_val);
-
-    // Clamp calculated values
-    if (mixer_mapped->thrust < -1.0f)
-        mixer_mapped->thrust = -1.0f;
-    if (mixer_mapped->thrust > 1.0f)
-        mixer_mapped->thrust = 1.0f;
+    // Final safety clamp to [0.0, 1.0]
+    for (uint8_t i = 0; i < mixer->motor_instances; i++) {
+        if (mixer->motor_outputs[i] < 0.0f) {
+            mixer->motor_outputs[i] = 0.0f;
+        }
+        if (mixer->motor_outputs[i] > 1.0f) {
+            mixer->motor_outputs[i] = 1.0f;
+        }
+    }
 }
 
-static float limit_min_thrust_values(float mixer_calcualated_val,
-                                     float thrust) {
-    float retval = 0;
-    if ((mixer_calcualated_val * 100 <
-         CONFIG_MIXER_MINIMAL_CALCULATED_VALUE_PERCENT) &&
-        (thrust * 100 > CONFIG_MIXER_LOWER_THRUST_THRESHOLD_PERCENT)) {
-        retval = CONFIG_MIXER_MINIMAL_CALCULATED_VALUE_PERCENT / 100.0f;
-    } else {
-        retval = mixer_calcualated_val;
+static MIXER_Error_Type validate_mixer_geom_cfg(MIXER_UAV_Cfg_Type cfg) {
+    // Validate that the config is within the valid enum range
+    if (cfg >= MIXER_UAV_CFG_QUADROTOR_X &&
+        cfg <= MIXER_UAV_CFG_HEXAROTOR_CROSS) {
+        return MIXER_SUCCESS;
     }
-    return retval;
+    return MIXER_INVALID_CFG;
 }

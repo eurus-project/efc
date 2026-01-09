@@ -29,32 +29,38 @@ typedef enum {
     MIXER_INIT_ERROR,
     MIXER_ESC_ERROR,
     MIXER_INVALID_CFG,
+    MIXER_OUT_OF_BOUND_VALS,
 } MIXER_Error_Type;
 
 typedef enum {
     MIXER_UAV_CFG_QUADROTOR_X = 0,
+    MIXER_UAV_CFG_QUADROTOR_CROSS,
+    MIXER_UAV_CFG_HEXAROTOR_X,
+    MIXER_UAV_CFG_HEXAROTOR_CROSS,
 } MIXER_UAV_Cfg_Type;
 
 typedef struct {
-    int32_t thrust;
-    int32_t roll;
-    int32_t pitch;
-    int32_t yaw;
-} MIXER_Raw_Input_Type;
+    float thrust; // 0.0 to 1.0
+    float roll;   // -1.0 to 1.0
+    float pitch;  // -1.0 to 1.0
+    float yaw;    // -1.0 to 1.0
+} MIXER_Input_Type;
 
 typedef struct {
-    float thrust;
-    float roll;
-    float pitch;
-    float yaw;
-} MIXER_Mapped_Input_Type;
+    float roll_factor;     // -1.0 to 1.0
+    float pitch_factor;    // -1.0 to 1.0
+    float yaw_factor;      // -1.0 to 1.0
+    float throttle_factor; //  1.0
+} MIXER_Motor_Factors_Type;
 
 typedef struct {
     ESC_Inst_Type motor_arr[MAX_MOTOR_INSTANCES];
-    uint8_t motor_instances;
+    MIXER_Motor_Factors_Type motor_factors[MAX_MOTOR_INSTANCES];
+    float motor_outputs[MAX_MOTOR_INSTANCES];
     MIXER_UAV_Cfg_Type uav_config;
-    bool initialized;
+    uint8_t motor_instances;
     uint8_t max_motor_num;
+    bool initialized;
 } MIXER_Inst_Type;
 
 MIXER_Error_Type MIXER_AddMotor(MIXER_Inst_Type *mixer, ESC_Inst_Type *esc);
@@ -62,6 +68,6 @@ MIXER_Error_Type MIXER_AddMotor(MIXER_Inst_Type *mixer, ESC_Inst_Type *esc);
 MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer, MIXER_UAV_Cfg_Type uav_cfg);
 
 MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
-                               MIXER_Raw_Input_Type *mixer_in);
+                               const MIXER_Input_Type *mixer_in);
 
 #endif
