@@ -126,27 +126,27 @@ MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
 static void setup_motor_factors(MIXER_Inst_Type *mixer) {
     switch (mixer->uav_config) {
     case MIXER_UAV_CFG_QUADROTOR_X:
-        // Motor 0 (Front Right): +roll, +pitch, +yaw
+        // Motor 1 (Front Right): +roll, +pitch, +yaw
         mixer->motor_factors[0].roll_factor = -1.0f;
-        mixer->motor_factors[0].pitch_factor = 1.0f;
+        mixer->motor_factors[0].pitch_factor = -1.0f;
         mixer->motor_factors[0].yaw_factor = 1.0f;
         mixer->motor_factors[0].throttle_factor = 1.0f;
 
-        // Motor 1 (Rear Left): -roll, -pitch, +yaw
+        // Motor 2 (Rear Left - CW): +roll, +pitch, +yaw
         mixer->motor_factors[1].roll_factor = 1.0f;
-        mixer->motor_factors[1].pitch_factor = -1.0f;
+        mixer->motor_factors[1].pitch_factor = 1.0f;
         mixer->motor_factors[1].yaw_factor = 1.0f;
         mixer->motor_factors[1].throttle_factor = 1.0f;
 
-        // Motor 2 (Front Left): -roll, +pitch, -yaw
+        // Motor 3 (Front Left - CCW): +roll, -pitch, -yaw
         mixer->motor_factors[2].roll_factor = 1.0f;
-        mixer->motor_factors[2].pitch_factor = 1.0f;
+        mixer->motor_factors[2].pitch_factor = -1.0f;
         mixer->motor_factors[2].yaw_factor = -1.0f;
         mixer->motor_factors[2].throttle_factor = 1.0f;
 
-        // Motor 3 (Rear Right): +roll, -pitch, -yaw
+        // Motor 4 (Rear Right - CCW): -roll, +pitch, -yaw
         mixer->motor_factors[3].roll_factor = -1.0f;
-        mixer->motor_factors[3].pitch_factor = -1.0f;
+        mixer->motor_factors[3].pitch_factor = 1.0f;
         mixer->motor_factors[3].yaw_factor = -1.0f;
         mixer->motor_factors[3].throttle_factor = 1.0f;
         break;
