@@ -33,9 +33,6 @@ typedef enum {
 
 typedef enum {
     MIXER_UAV_CFG_QUADROTOR_X = 0,
-    MIXER_UAV_CFG_QUADROTOR_CROSS,
-    MIXER_UAV_CFG_HEXAROTOR_X,
-    MIXER_UAV_CFG_HEXAROTOR_CROSS
 } MIXER_UAV_Cfg_Type;
 
 typedef struct {
