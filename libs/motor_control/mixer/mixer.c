@@ -73,15 +73,10 @@ MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
 
     switch (uav_cfg) {
     case MIXER_UAV_CFG_QUADROTOR_X:
-    case MIXER_UAV_CFG_QUADROTOR_CROSS:
         mixer->max_motor_num = 4;
         ret = MIXER_SUCCESS;
         break;
-    case MIXER_UAV_CFG_HEXAROTOR_X:
-    case MIXER_UAV_CFG_HEXAROTOR_CROSS:
-        mixer->max_motor_num = 6;
-        ret = MIXER_SUCCESS;
-        break;
+
     default:
         ret = MIXER_INVALID_CFG;
         break;
@@ -239,9 +234,9 @@ static void normalize_motor_outputs(MIXER_Inst_Type *mixer) {
 }
 
 static MIXER_Error_Type validate_mixer_geom_cfg(MIXER_UAV_Cfg_Type cfg) {
-    // Validate that the config is within the valid enum range
-    if (cfg >= MIXER_UAV_CFG_QUADROTOR_X &&
-        cfg <= MIXER_UAV_CFG_HEXAROTOR_CROSS) {
+    /* Currently only QUADROTOR_X configuration is implemented.
+       When adding support for new geometries, update this validation logic */
+    if (cfg == MIXER_UAV_CFG_QUADROTOR_X) {
         return MIXER_SUCCESS;
     }
     return MIXER_INVALID_CFG;
