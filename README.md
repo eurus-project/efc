@@ -50,4 +50,17 @@ To ensure automatic code formatting, use [pre-commit](https://pre-commit.com/) a
 pre-commit install
 ```
 
+The `efc` project utilizes license header checks to ensure the _GPL-3.0_ license is applied to all source files. This process is automated via a GitHub Action using [Hawkeye](https://github.com/korandoru/hawkeye).
+
+To **check locally** for missing license headers, run the following command (using a `podman` or `docker` container):
+```bash
+podman run -it --rm -v $PWD:/workspace -w /workspace ghcr.io/korandoru/hawkeye:latest check --config /workspace/licenserc.toml
+```
+
+To **automatically add** missing license headers, run:
+```bash
+podman run -it --rm -v $PWD:/workspace -w /workspace ghcr.io/korandoru/hawkeye:latest format --config /workspace/licenserc.toml
+```
+> Note: The `hawkeye format` command only prepends headers to files that lack them; it does not correct existing, incorrect headers. If a file has an incorrect header, you must manually delete it after the correct one is added.
+
 When creating variables that represent physical units, unit suffixes must be added to their names (e.g. `pulse_duration_us`, `temp_degc`, `gyro_x_radps`).
