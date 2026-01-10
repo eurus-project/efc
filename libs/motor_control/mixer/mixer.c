@@ -121,7 +121,7 @@ MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
 static void setup_motor_factors(MIXER_Inst_Type *mixer) {
     switch (mixer->uav_config) {
     case MIXER_UAV_CFG_QUADROTOR_X:
-        // Motor 1 (Front Right): +roll, +pitch, +yaw
+        // Motor 1 (Front Right - CW): +roll, +pitch, +yaw
         mixer->motor_factors[0].roll_factor = -1.0f;
         mixer->motor_factors[0].pitch_factor = -1.0f;
         mixer->motor_factors[0].yaw_factor = 1.0f;
