@@ -36,6 +36,11 @@ typedef enum {
     MIXER_UAV_CFG_QUADROTOR_X = 0,
 } MIXER_UAV_Cfg_Type;
 
+typedef enum {
+    MIXER_NORM_STATIC = 0,
+    MIXER_NORM_DYNAMIC,
+} MIXER_Normalization_Type;
+
 typedef struct {
     float thrust; // 0.0 to 1.0
     float roll;   // -1.0 to 1.0
@@ -55,6 +60,7 @@ typedef struct {
     MIXER_Motor_Factors_Type motor_factors[MAX_MOTOR_INSTANCES];
     float motor_outputs[MAX_MOTOR_INSTANCES];
     MIXER_UAV_Cfg_Type uav_config;
+    MIXER_Normalization_Type norm;
     uint8_t motor_instances;
     uint8_t max_motor_num;
     bool initialized;
@@ -64,6 +70,41 @@ typedef struct {
  * @brief Mixer initialization function
  * @param mixer Pointer to the mixer instance struct
  * @param uav_cfg Geometrical drone configuration
+ * @param norm Mixer normalization type, can be:
+ *  1. MIXER_NORM_STATIC
+ *      Static normalization - conservative worst-case approach.
+ *
+ *      Quad-X worst case: each axis contributes ±1.0 to motor outputs
+ *      Maximum control sum: |roll| + |pitch| + |yaw| = 3.0
+ *
+ *      Apply constant scale factor to guarantee saturation-free operation
+ *      at all thrust levels:
+ *        scale = 1.0 / 3.0 = 0.333
+ *
+ *      Trade-off: Reduces control authority to 33% even when more could
+ *      be safely used, but eliminates runtime calculation overhead.
+ *
+ *  2. MIXER_NORM_DYNAMIC
+ *      Dynamic control scaling to prevent motor saturation:
+ *
+ *      Motor equation: mi = T + ci
+ *      where:
+ *          mi  - individual motor output [0.0, 1.0]
+ *          T   - thrust component (same for all motors)
+ *          ci  - control component for motor i (roll, pitch, yaw contribution)
+ *
+ *      Constraint derivation:
+ *          0 <= mi <= 1
+ *          0 <= T + ci <= 1
+ *          -T <= ci <= 1 - T
+ *
+ *      Therefore, control magnitude must satisfy: |ci| <= (1 - T)
+ *
+ *      If c_max = |roll| + |pitch| + |yaw| exceeds available headroom (1 - T),
+ *      scale all control inputs proportionally to prevent motor saturation
+ *      while preserving thrust authority.
+ *
+ *      Scale factor: s = (1 - T) / c_max
  *
  * @retval MIXER_INIT_ERROR Error in initialization, wrong args
  * @retval MIXER_INVALID_CFG Invalid or unsupported geometrical configuration
@@ -71,7 +112,9 @@ typedef struct {
  *
  * @attention MIXER_Init must be called before MIXER_AddMotor call
  */
-MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer, MIXER_UAV_Cfg_Type uav_cfg);
+MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
+                            const MIXER_UAV_Cfg_Type uav_cfg,
+                            const MIXER_Normalization_Type norm);
 
 /**
  * @brief Function to instantiate specific motor
@@ -130,6 +173,6 @@ MIXER_Error_Type MIXER_AddMotor(MIXER_Inst_Type *mixer, ESC_Inst_Type *esc);
  *
  */
 MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
-                               const MIXER_Input_Type *mixer_in);
+                               MIXER_Input_Type *mixer_in);
 
 #endif

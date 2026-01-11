@@ -171,7 +171,8 @@ int main(void) {
     mixer_uav_geom_cfg = MIXER_UAV_CFG_HEXAROTOR_CROSS;
 #endif
 
-    if (MIXER_Init(&mixer, mixer_uav_geom_cfg) != MIXER_SUCCESS)
+    if (MIXER_Init(&mixer, mixer_uav_geom_cfg, MIXER_NORM_STATIC) !=
+        MIXER_SUCCESS)
         return 0;
 
     if (MIXER_AddMotor(&mixer, &esc1) != MIXER_SUCCESS)

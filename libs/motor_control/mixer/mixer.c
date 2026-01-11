@@ -24,9 +24,11 @@ static void setup_motor_factors(MIXER_Inst_Type *mixer);
 static MIXER_Error_Type validate_mixer_input(const MIXER_Input_Type *input);
 static void calculate_motor_outputs(MIXER_Inst_Type *mixer,
                                     const MIXER_Input_Type *input);
-static void normalize_motor_outputs(MIXER_Inst_Type *mixer);
 static MIXER_Error_Type apply_motor_outputs(MIXER_Inst_Type *mixer);
 static MIXER_Error_Type validate_mixer_geom_cfg(MIXER_UAV_Cfg_Type cfg);
+
+static void normalize_control(MIXER_Inst_Type *mixer,
+                              MIXER_Input_Type *mixer_in);
 
 MIXER_Error_Type MIXER_AddMotor(MIXER_Inst_Type *mixer, ESC_Inst_Type *esc) {
     if (mixer == NULL || esc == NULL) {
@@ -52,7 +54,8 @@ MIXER_Error_Type MIXER_AddMotor(MIXER_Inst_Type *mixer, ESC_Inst_Type *esc) {
 }
 
 MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
-                            MIXER_UAV_Cfg_Type uav_cfg) {
+                            const MIXER_UAV_Cfg_Type uav_cfg,
+                            const MIXER_Normalization_Type norm) {
     MIXER_Error_Type ret = MIXER_INIT_ERROR;
 
     if (mixer == NULL) {
@@ -63,12 +66,17 @@ MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
         return MIXER_INVALID_CFG;
     }
 
+    if (norm != MIXER_NORM_STATIC && norm != MIXER_NORM_DYNAMIC) {
+        return MIXER_INVALID_CFG;
+    }
+
     memset(mixer->motor_arr, 0, sizeof(mixer->motor_arr));
     memset(mixer->motor_factors, 0, sizeof(mixer->motor_factors));
     memset(mixer->motor_outputs, 0, sizeof(mixer->motor_outputs));
     mixer->motor_instances = 0;
     mixer->max_motor_num = 0;
     mixer->uav_config = uav_cfg;
+    mixer->norm = norm;
     mixer->initialized = false;
 
     switch (uav_cfg) {
@@ -93,7 +101,7 @@ MIXER_Error_Type MIXER_Init(MIXER_Inst_Type *mixer,
 }
 
 MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
-                               const MIXER_Input_Type *mixer_in) {
+                               MIXER_Input_Type *mixer_in) {
     if (mixer == NULL || mixer_in == NULL) {
         return MIXER_INIT_ERROR;
     }
@@ -111,9 +119,8 @@ MIXER_Error_Type MIXER_Execute(MIXER_Inst_Type *mixer,
         return MIXER_OUT_OF_BOUND_VALS;
     }
 
+    normalize_control(mixer, mixer_in);
     calculate_motor_outputs(mixer, mixer_in);
-
-    normalize_motor_outputs(mixer);
 
     return apply_motor_outputs(mixer);
 }
@@ -187,49 +194,33 @@ static MIXER_Error_Type apply_motor_outputs(MIXER_Inst_Type *mixer) {
     return MIXER_SUCCESS;
 }
 
-static void normalize_motor_outputs(MIXER_Inst_Type *mixer) {
-    if (mixer->motor_instances == 0) {
-        return;
-    }
+static void normalize_control(MIXER_Inst_Type *mixer,
+                              MIXER_Input_Type *mixer_in) {
+    switch (mixer->norm) {
+    case MIXER_NORM_STATIC:
+        const float scale = 1.0f / 3.0f;
+        mixer_in->roll *= scale;
+        mixer_in->pitch *= scale;
+        mixer_in->yaw *= scale;
+        break;
 
-    // Find min and max outputs
-    float max_output = mixer->motor_outputs[0];
-    float min_output = mixer->motor_outputs[0];
+    case MIXER_NORM_DYNAMIC:
+        const float c_max = fabsf(mixer_in->roll) + fabsf(mixer_in->pitch) +
+                            fabsf(mixer_in->yaw);
 
-    for (uint8_t i = 1; i < mixer->motor_instances; i++) {
-        if (mixer->motor_outputs[i] > max_output) {
-            max_output = mixer->motor_outputs[i];
-        }
-        if (mixer->motor_outputs[i] < min_output) {
-            min_output = mixer->motor_outputs[i];
-        }
-    }
+        const float headroom = 1.0f - mixer_in->thrust;
 
-    // If max exceeds 1.0, scale all down proportionally
-    if (max_output > 1.0f) {
-        float scale = 1.0f / max_output;
-        for (uint8_t i = 0; i < mixer->motor_instances; i++) {
-            mixer->motor_outputs[i] *= scale;
-        }
-        // Recalculate min after scaling
-        min_output *= scale;
-    }
+        if (c_max > headroom && c_max > 0.0f) {
+            const float scale = headroom / c_max;
 
-    // If min below 0.0, shift all up
-    if (min_output < 0.0f) {
-        for (uint8_t i = 0; i < mixer->motor_instances; i++) {
-            mixer->motor_outputs[i] -= min_output;
+            mixer_in->roll *= scale;
+            mixer_in->pitch *= scale;
+            mixer_in->yaw *= scale;
         }
-    }
+        break;
 
-    // Final safety clamp to [0.0, 1.0]
-    for (uint8_t i = 0; i < mixer->motor_instances; i++) {
-        if (mixer->motor_outputs[i] < 0.0f) {
-            mixer->motor_outputs[i] = 0.0f;
-        }
-        if (mixer->motor_outputs[i] > 1.0f) {
-            mixer->motor_outputs[i] = 1.0f;
-        }
+    default:
+        break;
     }
 }
 
