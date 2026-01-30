@@ -34,3 +34,31 @@ jobs:
         run: |
           cd ./efc
           west build -b eurus_nexus_v1_1 app
+
+  build-sitl:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          path: efc
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install project requirements
+        run: |
+          sudo apt-get update && sudo apt-get update
+          sudo apt-get install libuv1-dev
+          cd ./efc
+          python -m venv python_venv
+          ./python_venv/bin/pip install -r requirements.txt
+
+      - name: Build project
+        run: |
+          cd ./efc
+          cmake -B build -S sitl
+          cmake --build build
