@@ -210,7 +210,7 @@ static void normalize_control(MIXER_Inst_Type *mixer,
         const float c_max = fabsf(mixer_in->roll) + fabsf(mixer_in->pitch) +
                             fabsf(mixer_in->yaw);
 
-        const float headroom = 1.0f - mixer_in->thrust;
+        const float headroom = fminf(mixer_in->thrust, 1.0f - mixer_in->thrust);
 
         if (c_max > headroom && c_max > 0.0f) {
             const float scale = headroom / c_max;

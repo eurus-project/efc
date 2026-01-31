@@ -98,13 +98,16 @@ typedef struct {
  *          0 <= T + ci <= 1
  *          -T <= ci <= 1 - T
  *
- *      Therefore, control magnitude must satisfy: |ci| <= (1 - T)
+ *      Therefore, control magnitude must satisfy:
+ *      |ci| <= min(T, 1 - T)
  *
- *      If c_max = |roll| + |pitch| + |yaw| exceeds available headroom (1 - T),
- *      scale all control inputs proportionally to prevent motor saturation
- *      while preserving thrust authority.
+ *      If c_max = |roll| + |pitch| + |yaw| exceeds available headroom, scale
+ *      all control inputs proportionally to prevent motor saturation while
+ *      preserving thrust authority.
  *
- *      Scale factor: s = (1 - T) / c_max
+ *      headroom = min(T, 1 - T)
+ *
+ *      Scale factor: s = headroom / c_max
  *
  * @retval MIXER_INIT_ERROR Error in initialization, wrong args
  * @retval MIXER_INVALID_CFG Invalid or unsupported geometrical configuration
