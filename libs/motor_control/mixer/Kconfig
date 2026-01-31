@@ -1,5 +1,4 @@
-# There should be impemented some Kconfig that will be used for MIXER library
-# configuration
+# MIXER (Motor mixing library) configuration options
 
 menuconfig MIXER
     bool "Drone motor mixing library"
@@ -8,40 +7,10 @@ menuconfig MIXER
 
 if MIXER
 
-# Manual minimum receiver data offset
-config MIXER_MINIMAL_RECEIVER_DATA_OFFSET
-    bool "Enable minimal receiver data offset"
-
-config MIXER_MINIMAL_RECEIVER_DATA_VALUE
-    int "Value that represents 'zero' value - minimal value"
-    default 0
-    depends on MIXER_MINIMAL_RECEIVER_DATA_OFFSET
-
-# Manual maximum receiver data offset
-config MIXER_MAXIMAL_RECEIVER_DATA_OFFSET
-    bool "Enable maximal receiver data offset"
-
-config MIXER_MAXIMAL_RECEIVER_DATA_VALUE
-    int "Value that represents 'max' value - maximal value"
-    default 2047
-    depends on MIXER_MAXIMAL_RECEIVER_DATA_OFFSET
-
-# Manual neutral position receiver data offset
-config MIXER_NEUTRAL_RECEIVER_DATA_OFFSET
-    bool "Enable neutral stick position receiver data offset"
-
-config MIXER_NEUTRAL_RECEIVER_DATA_VALUE
-    int "Value that represents neutral stick position value - neutral value"
-    default 1024
-    depends on MIXER_MAXIMAL_RECEIVER_DATA_OFFSET
-
-config MIXER_MINIMAL_CALCULATED_VALUE_PERCENT
-    int "Minimum allowed calculated mixer value during mixing"
-    default 30
-
-config MIXER_LOWER_THRUST_THRESHOLD_PERCENT
-    int "Lower threshold of thrust for which MIXER_MINIMAL_CALC_VALUE_PERCENT \
-    is applied"
-    default 40
+config STATIC_NORM_THRUST_WEIGHT
+    int "The weight of thrust compared to RPY in percentage"
+    default 60
+    help 
+        Value in percents that is used to configure the static mixer normalization, representing the T : RPY relation
 
 endif # MIXER
