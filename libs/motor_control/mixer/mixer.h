@@ -24,6 +24,10 @@
 
 #define MAX_MOTOR_INSTANCES 6
 
+#if !defined(CONFIG_STATIC_NORM_THRUST_WEIGHT)
+#define CONFIG_STATIC_NORM_THRUST_WEIGHT 60
+#endif
+
 typedef enum {
     MIXER_SUCCESS = 0,
     MIXER_INIT_ERROR,
