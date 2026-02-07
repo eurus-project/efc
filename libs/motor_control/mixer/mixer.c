@@ -201,9 +201,9 @@ static void normalize_control(MIXER_Inst_Type *mixer,
         const float thrust_weight = CONFIG_STATIC_NORM_THRUST_WEIGHT / 100.0f;
         const float rpy_weight = 1.0f - thrust_weight;
         mixer_in->thrust *= thrust_weight;
-        mixer_in->roll *= rpy_weight;
-        mixer_in->pitch *= rpy_weight;
-        mixer_in->yaw *= rpy_weight;
+        mixer_in->roll *= rpy_weight / 3.0f;
+        mixer_in->pitch *= rpy_weight / 3.0f;
+        mixer_in->yaw *= rpy_weight / 3.0f;
         break;
 
     case MIXER_NORM_DYNAMIC:

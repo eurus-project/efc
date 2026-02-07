@@ -46,17 +46,17 @@ typedef enum {
 } MIXER_Normalization_Type;
 
 typedef struct {
-    float thrust; // 0.0 to 1.0
-    float roll;   // -1.0 to 1.0
-    float pitch;  // -1.0 to 1.0
-    float yaw;    // -1.0 to 1.0
+    float thrust;
+    float roll;
+    float pitch;
+    float yaw;
 } MIXER_Input_Type;
 
 typedef struct {
-    float roll_factor;     // -1.0 to 1.0
-    float pitch_factor;    // -1.0 to 1.0
-    float yaw_factor;      // -1.0 to 1.0
-    float throttle_factor; //  1.0
+    float roll_factor;
+    float pitch_factor;
+    float yaw_factor;
+    float throttle_factor;
 } MIXER_Motor_Factors_Type;
 
 typedef struct {
