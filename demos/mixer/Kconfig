@@ -1,0 +1,50 @@
+# MIXER demo configuration
+
+mainmenu "Eurus Flight Controller - MIXER demo"
+
+
+# MIXER Unmanned aerial vehicle geometrical configuration
+menu "Mixer configuration"
+    choice
+        prompt "Mixer UAV geometrical configuration"
+        default MIXER_UAV_QUADROTOR_X
+
+    config MIXER_UAV_QUADROTOR_X
+        bool "UAV quadrotor 'X' configuration"
+
+    config MIXER_UAV_QUADROTOR_CROSS
+        bool "UAV quadrotor '+' configuration"
+
+    config MIXER_UAV_HEXAROTOR_X
+        bool "UAV hexarotor 'X' configuration"
+
+    config MIXER_UAV_HEXAROTOR_CROSS
+        bool "UAV hexarotor '+' configuration"
+
+    endchoice
+endmenu
+
+# ESC Protocol configuration
+menu "ESC Configuration"    
+    choice
+        prompt "ESC Protocol Selection"
+        default ESC_PWM
+
+    config ESC_PWM
+        bool "ESC PWM protocol"
+
+    config ESC_ONESHOT_125
+        bool "ESC Oneshot125 protocol"
+
+    config ESC_ONESHOT_42
+        bool "ESC Oneshot42 protocol"
+
+    config ESC_MULTISHOT
+        bool "ESC Multishot protocol"
+
+    endchoice
+endmenu
+
+source "../efc/libs/motor_control/esc/Kconfig"
+source "../efc/libs/motor_control/mixer/Kconfig"
+source "Kconfig.zephyr"
