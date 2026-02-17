@@ -1,0 +1,16 @@
+# MIXER (Motor mixing library) configuration options
+
+menuconfig MIXER
+    bool "Drone motor mixing library"
+    help 
+        Enable support for mixer library
+
+if MIXER
+
+config STATIC_NORM_THRUST_WEIGHT
+    int "The weight of thrust compared to RPY in percentage"
+    default 60
+    help 
+        Value in percents that is used to configure the static mixer normalization, representing the T : RPY relation
+
+endif # MIXER
