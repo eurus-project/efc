@@ -27,6 +27,3 @@ config ESC_MAX_PULSE_OFFSET_PERCENT
 
 
 endif # ESC
-
-
-source "Kconfig.zephyr"
