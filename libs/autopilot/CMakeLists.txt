@@ -14,3 +14,20 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 cmake_minimum_required(VERSION 3.20.0)
+
+add_library(autopilot
+STATIC
+    autopilot.c
+)
+
+target_include_directories(autopilot
+PUBLIC
+    include
+)
+
+if(TARGET zephyr_interface)
+    target_link_libraries(autopilot PUBLIC zephyr_interface)
+else()
+    # Pure-C99 with no OS dependencies, only needed for sinf() on host.
+    target_link_libraries(autopilot PUBLIC m)
+endif()

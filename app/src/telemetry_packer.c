@@ -25,7 +25,7 @@
 #include "common/mavlink.h"
 // clang-format on
 
-#include "types.h"
+#include "autopilot/types.h"
 
 LOG_MODULE_REGISTER(telemetry_packer);
 
@@ -37,9 +37,15 @@ ZBUS_CHAN_DEFINE(heartbeat_chan, bool, NULL, NULL,
 
 ZBUS_SUBSCRIBER_DEFINE_WITH_ENABLE(telemetry_packer_sub, 16, false);
 
-const uint8_t telemetry_system_id = 0;
+const uint8_t telemetry_system_id = 1;
 const uint8_t telemetry_component_id = MAV_COMP_ID_AUTOPILOT1;
 const uint8_t telemetry_channel_ground = MAVLINK_COMM_0;
+
+#define STANDARD_GRAVITY_MPS2 9.80665f
+
+#define SENSOR_HEALTH_MASK                                                     \
+    (MAV_SYS_STATUS_SENSOR_3D_GYRO | MAV_SYS_STATUS_SENSOR_3D_ACCEL |          \
+     MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE)
 
 static struct k_timer heartbeat_timer;
 
@@ -80,9 +86,10 @@ void telemetry_packer(void *dummy1, void *dummy2, void *dummy3) {
             mavlink_msg_scaled_imu_pack_chan(
                 telemetry_system_id, telemetry_component_id,
                 telemetry_channel_ground, &mavlink_msg, msg.timestamp_us / 1000,
-                (int16_t)(msg.accel_mps2[0] * 1000.0f),
-                (int16_t)(msg.accel_mps2[1] * 1000.0f),
-                (int16_t)(msg.accel_mps2[2] * 1000.0f),
+                /* Mavlink expects accel is in mGs */
+                (int16_t)(msg.accel_mps2[0] * 1000.0f / STANDARD_GRAVITY_MPS2),
+                (int16_t)(msg.accel_mps2[1] * 1000.0f / STANDARD_GRAVITY_MPS2),
+                (int16_t)(msg.accel_mps2[2] * 1000.0f / STANDARD_GRAVITY_MPS2),
                 (int16_t)(msg.gyro_radps[0] * 1000.0f),
                 (int16_t)(msg.gyro_radps[1] * 1000.0f),
                 (int16_t)(msg.gyro_radps[2] * 1000.0f), 0, 0, 0,
@@ -127,11 +134,27 @@ void telemetry_packer(void *dummy1, void *dummy2, void *dummy3) {
                 MAV_AUTOPILOT_GENERIC, MAV_MODE_FLAG_MANUAL_INPUT_ENABLED, 0,
                 MAV_STATE_ACTIVE);
 
-            const uint16_t telemetry_msg_len =
+            uint16_t telemetry_msg_len =
                 mavlink_msg_to_send_buffer(mavlink_ser_buf, &mavlink_msg);
 
-            int ret = k_pipe_write(&telemetry_ground_pipe, mavlink_ser_buf,
-                                   telemetry_msg_len, K_NO_WAIT);
+            ret = k_pipe_write(&telemetry_ground_pipe, mavlink_ser_buf,
+                               telemetry_msg_len, K_NO_WAIT);
+
+            if (ret < 0) {
+                LOG_WRN("Could not fit data into telemetry pipe!");
+            }
+
+            mavlink_msg_sys_status_pack_chan(
+                telemetry_system_id, telemetry_component_id,
+                telemetry_channel_ground, &mavlink_msg, SENSOR_HEALTH_MASK,
+                SENSOR_HEALTH_MASK, SENSOR_HEALTH_MASK, 0, UINT16_MAX, -1, -1,
+                0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+            telemetry_msg_len =
+                mavlink_msg_to_send_buffer(mavlink_ser_buf, &mavlink_msg);
+
+            ret = k_pipe_write(&telemetry_ground_pipe, mavlink_ser_buf,
+                               telemetry_msg_len, K_NO_WAIT);
 
             if (ret < 0) {
                 LOG_WRN("Could not fit data into telemetry pipe!");

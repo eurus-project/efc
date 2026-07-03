@@ -60,5 +60,5 @@ jobs:
       - name: Build project
         run: |
           cd ./efc
-          cmake -B build -S sitl
-          cmake --build build
+          cmake -B build_sitl -S sitl
+          cmake --build build_sitl

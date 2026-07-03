@@ -34,4 +34,5 @@ target_link_libraries(app
 PRIVATE
     ulog
     mavlink
+    autopilot
 )

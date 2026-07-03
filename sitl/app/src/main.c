@@ -15,7 +15,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <uv.h>
@@ -26,50 +28,88 @@
 #include "common/mavlink.h"
 // clang-format on
 
-#define TARGET_IP "127.0.0.1"
-#define TARGET_PORT 14560
+#include "autopilot/autopilot.h"
+#include "gcs_link.h"
+#include "hil_link.h"
 
-static uv_udp_t udp;
-static uv_udp_send_t send_req;
-static struct sockaddr_in target_addr;
+#define DEFAULT_SIM_IP "127.0.0.1"
+#define DEFAULT_SIM_PORT 14560
+#define DEFAULT_GCS_IP "127.0.0.1"
+#define DEFAULT_GCS_PORT 14550
 
-const uint8_t telemetry_system_id = 0;
-const uint8_t telemetry_component_id = MAV_COMP_ID_AUTOPILOT1;
-const uint8_t telemetry_channel_ground = MAVLINK_COMM_0;
+#define SYSTEM_ID 1
+#define COMPONENT_ID MAV_COMP_ID_AUTOPILOT1
 
-static mavlink_message_t mavlink_msg;
-static uint8_t mavlink_ser_buf[MAVLINK_MAX_PACKET_LEN];
-
-static void udp_cb(uv_udp_send_t *req, int status) {
-    if (status < 0) {
-        fprintf(stderr, "UDP send error: %s\n", uv_strerror(status));
-    }
-}
+static struct hil_link hil;
+static struct gcs_link gcs;
+static uv_timer_t heartbeat_timer;
 
 static void heartbeat_timer_cb(uv_timer_t *handle) {
-    mavlink_msg_heartbeat_pack_chan(
-        telemetry_system_id, telemetry_component_id, telemetry_channel_ground,
-        &mavlink_msg, MAV_TYPE_GENERIC, MAV_AUTOPILOT_GENERIC,
-        MAV_MODE_FLAG_MANUAL_INPUT_ENABLED, 0, MAV_STATE_ACTIVE);
-
-    const uint16_t telemetry_msg_len =
-        mavlink_msg_to_send_buffer(mavlink_ser_buf, &mavlink_msg);
-
-    uv_buf_t buf = uv_buf_init((char *)mavlink_ser_buf, telemetry_msg_len);
-
-    uv_udp_send(&send_req, &udp, &buf, 1, (const struct sockaddr *)&target_addr,
-                udp_cb);
+    (void)handle;
+    hil_link_send_heartbeat(&hil);
+    gcs_link_send_heartbeat(&gcs);
+    gcs_link_send_sys_status(&gcs);
 }
 
-int main(void) {
+int main(int argc, char **argv) {
+    // stdout is fully buffered when not a TTY (e.g. redirected to a file or
+    // piped), which would otherwise delay --verbose sensor logs until the
+    // buffer fills or the process exits cleanly.
+    setvbuf(stdout, NULL, _IOLBF, 0);
+
+    const char *sim_ip = DEFAULT_SIM_IP;
+    int sim_port = DEFAULT_SIM_PORT;
+    const char *gcs_ip = DEFAULT_GCS_IP;
+    int gcs_port = DEFAULT_GCS_PORT;
+    bool verbose = false;
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--sim-ip") == 0 && i + 1 < argc) {
+            sim_ip = argv[++i];
+        } else if (strcmp(argv[i], "--sim-port") == 0 && i + 1 < argc) {
+            sim_port = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--gcs-ip") == 0 && i + 1 < argc) {
+            gcs_ip = argv[++i];
+        } else if (strcmp(argv[i], "--gcs-port") == 0 && i + 1 < argc) {
+            gcs_port = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--verbose") == 0) {
+            verbose = true;
+        } else {
+            fprintf(stderr,
+                    "Usage: %s [--sim-ip <ip>] [--sim-port <port>] [--gcs-ip "
+                    "<ip>] [--gcs-port <port>] "
+                    "[--verbose]\n",
+                    argv[0]);
+            return 1;
+        }
+    }
+
+    autopilot_init();
+
     uv_loop_t *loop = uv_default_loop();
 
-    uv_udp_init(loop, &udp);
-    uv_ip4_addr(TARGET_IP, TARGET_PORT, &target_addr);
+    int ret =
+        gcs_link_init(&gcs, loop, gcs_ip, gcs_port, SYSTEM_ID, COMPONENT_ID);
+    if (ret != 0) {
+        fprintf(stderr, "Failed to initialize GCS link to %s:%d: %s\n", gcs_ip,
+                gcs_port, uv_strerror(ret));
+        return 1;
+    }
 
-    uv_timer_t heartbeat_timer;
+    ret = hil_link_init(&hil, loop, sim_ip, sim_port, SYSTEM_ID, COMPONENT_ID,
+                        verbose, &gcs);
+    if (ret != 0) {
+        fprintf(stderr, "Failed to initialize HIL link to %s:%d: %s\n", sim_ip,
+                sim_port, uv_strerror(ret));
+        return 1;
+    }
+
     uv_timer_init(loop, &heartbeat_timer);
     uv_timer_start(&heartbeat_timer, heartbeat_timer_cb, 0, 1000);
+
+    printf("efc_sitl: connecting to jMAVSim at %s:%d, sending telemetry to GCS "
+           "at %s:%d\n",
+           sim_ip, sim_port, gcs_ip, gcs_port);
 
     uv_run(loop, UV_RUN_DEFAULT);
 

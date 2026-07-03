@@ -66,4 +66,6 @@ PUBLIC
     MAVLINK_GET_CHANNEL_BUFFER=mavlink_get_channel_buffer
 )
 
-target_link_libraries(mavlink PUBLIC zephyr_interface)
+if(TARGET zephyr_interface)
+    target_link_libraries(mavlink PUBLIC zephyr_interface)
+endif()

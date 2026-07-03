@@ -29,7 +29,7 @@
 #include "ulog_baro.h"
 #include "ulog_gyro.h"
 
-#include "types.h"
+#include "autopilot/types.h"
 
 LOG_MODULE_REGISTER(logger);
 

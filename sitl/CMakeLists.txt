@@ -27,6 +27,6 @@ else()
 	set(VENV_PYTHON ${EFC_SOURCE_DIR}/python_venv/bin/python)
 endif()
 
-add_subdirectory(external/mavlink)
-add_subdirectory(external/autopilot)
+add_subdirectory(${EFC_SOURCE_DIR}/libs/telemetry/mavlink ${CMAKE_CURRENT_BINARY_DIR}/mavlink)
+add_subdirectory(${EFC_SOURCE_DIR}/libs/autopilot ${CMAKE_CURRENT_BINARY_DIR}/autopilot)
 add_subdirectory(app)

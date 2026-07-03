@@ -15,13 +15,30 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __MAVLINK_CUSTOM_H__
-#define __MAVLINK_CUSTOM_H__
+#ifndef HIL_LINK_H
+#define HIL_LINK_H
 
-#include "mavlink_types.h"
+#include <stdbool.h>
+#include <stdint.h>
 
-/* Global status and buffer instance getters */
-mavlink_status_t *mavlink_get_channel_status(uint8_t chan);
-mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan);
+#include <uv.h>
 
-#endif
+#include "udp_link.h"
+
+struct gcs_link;
+
+struct hil_link {
+    struct udp_link udp;
+    uint8_t system_id;
+    uint8_t component_id;
+    bool verbose;
+    struct gcs_link *gcs; // optional, forwards decoded samples if set
+};
+
+int hil_link_init(struct hil_link *link, uv_loop_t *loop, const char *sim_ip,
+                  int sim_port, uint8_t system_id, uint8_t component_id,
+                  bool verbose, struct gcs_link *gcs);
+
+void hil_link_send_heartbeat(struct hil_link *link);
+
+#endif // HIL_LINK_H

@@ -17,12 +17,16 @@ cmake_minimum_required(VERSION 3.20.0)
 
 add_executable(efc_sitl
     src/main.c
+    src/udp_link.c
+    src/hil_link.c
+    src/gcs_link.c
 )
 
 target_link_libraries(efc_sitl
 PUBLIC
     mavlink
     uv
+    autopilot
 )
 
 target_compile_options(efc_sitl

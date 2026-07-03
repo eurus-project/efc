@@ -1,3 +1,6 @@
 [submodule "mavlink"]
 	path = tools/mavlink
 	url = git@github.com:mavlink/mavlink.git
+[submodule "tools/jMAVSim"]
+	path = tools/jMAVSim
+	url = git@github.com:PX4/jMAVSim.git

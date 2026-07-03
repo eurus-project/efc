@@ -15,16 +15,42 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "mavlink_custom.h"
+#ifndef AUTOPILOT_TYPES_H
+#define AUTOPILOT_TYPES_H
 
-/* Global status and buffer instances for each channel */
-static mavlink_status_t chan_statuses[MAVLINK_COMM_NUM_BUFFERS];
-static mavlink_message_t chan_buffers[MAVLINK_COMM_NUM_BUFFERS];
+#include <stdint.h>
 
-mavlink_status_t *mavlink_get_channel_status(uint8_t chan) {
-    return &chan_statuses[chan];
-}
+struct imu_6dof_data {
+    uint64_t timestamp_us;
+    float temperature_degc;
+    float accel_mps2[3];
+    float gyro_radps[3];
+};
 
-mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan) {
-    return &chan_buffers[chan];
-}
+struct baro_data {
+    uint64_t timestamp_us;
+    float temperature_degc;
+    float pressure_kpa;
+};
+
+struct mag_data {
+    uint64_t timestamp_us;
+    float mag_gauss[3];
+};
+
+struct gps_data {
+    uint64_t timestamp_us;
+    uint8_t fix_type;
+    int32_t lat_dege7;
+    int32_t lon_dege7;
+    int32_t alt_mm;
+    float vel_n_mps;
+    float vel_e_mps;
+    float vel_d_mps;
+    float eph_m;
+    float epv_m;
+    float cog_deg;
+    uint8_t num_sats;
+};
+
+#endif // AUTOPILOT_TYPES_H
