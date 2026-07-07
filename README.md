@@ -42,17 +42,36 @@ west build -b eurus_nexus_v1_1 app
 ```
 
 ## EFC SITL
-SITL (Software In The Loop) for the EFC autopilot runs the EFC flight control software on a host machine (PC) while interfacing with a flight simulator that models vehicle dynamics and the environment. The simulator provides synthetic sensor data to EFC, and EFC computes and returns actuator commands, forming a closed control loop. This setup enables realistic testing and validation of the EFC autopilot without physical hardware.  
+SITL (Software In The Loop) for the EFC autopilot runs the EFC flight control software on a host machine (PC) while interfacing with a flight simulator that models vehicle dynamics and the environment. The simulator provides synthetic sensor data to EFC, and EFC computes and returns actuator commands, forming a closed control loop. This setup enables realistic testing and validation of the EFC autopilot without physical hardware.
 EFC SITL is designed for the EFC autopilot to interact with [jMAVSim](https://github.com/PX4/jMAVSim) simulator.
 
-## Build EFC SITL
+### Architecture
+
+EFC SITL (`sitl/`) is a standalone host application which talks to jMAVSim over Mavlink, and separately sends EFC's own telemetry to a ground station (e.g. QGroundControl) so SITL exercises the same telemetry path the firmware uses on real hardware.
+
+```mermaid
+flowchart LR
+    sim["jMAVSim<br/>(UDP 14560)"]
+    sitl["efc_sitl"]
+    gcs["QGroundControl<br/>(UDP 14550)"]
+
+    sim -- "HIL_SENSOR / HIL_GPS" --> sitl
+    sitl -- "HIL_ACTUATOR_CONTROLS" --> sim
+    sitl -- "HEARTBEAT / SCALED_IMU / GPS" --> gcs
+```
 
 ### EFC SITL build dependencies
 
-EFC SITL depends on [libuv](https://libuv.org/); therefore, `libuv` must be installed on the host system.  
+EFC SITL depends on [libuv](https://libuv.org/); therefore, `libuv` must be installed on the host system.
 On Debian-based systems, `libuv` can be installed using:
 ```bash
 apt-get install libuv1-dev
+```
+
+Running jMAVSim itself requires a JDK and Ant.
+On Debian-based systems:
+```bash
+apt-get install default-jdk ant
 ```
 
 ### EFC SITL build procedure
@@ -67,12 +86,34 @@ deactivate
 ```
 > Note: Sourcing the efc virtual environment will not be necessary after the first time as CMake will use the virtual environment python binary.
 
-2. Use CMake to build EFC SITL
+2. Use CMake to build EFC SITL. We use `build_sitl` as the build directory to keep it distinct from the firmware's own `build/`.
 ```bash
 cd ~/eurus/efc
-cmake -B build -S sitl
-cmake --build build 
+cmake -B build_sitl -S sitl
+cmake --build build_sitl
 ```
+
+### Running EFC SITL against jMAVSim
+
+jMAVSim is vendored as the `tools/jMAVSim` submodule (`git submodule update --init --recursive` if not already checked out).
+
+1. Start jMAVSim (builds it on first run):
+```bash
+./sitl/scripts/run_jmavsim.sh
+```
+jMAVSim listens on UDP 14560 and waits for `efc_sitl` to send the first packet before it starts streaming sensor data.
+
+2. In another terminal, start EFC SITL:
+```bash
+./build_sitl/app/efc_sitl --verbose
+```
+
+3. Point [QGroundControl](http://qgroundcontrol.com/) at UDP 14550 (its default autoconnect port) to see the vehicle's telemetry and position.
+
+| Link | Port | Direction |
+|---|---|---|
+| jMAVSim (HIL)  | UDP 14560 | `efc_sitl` connects out |
+| Ground station | UDP 14550 | `efc_sitl` connects out |
 
 ## Contributing
 The `efc` project uses code formatting rules described in `.clang-format`.

@@ -38,8 +38,8 @@
 #include "telemetry_packer.h"
 #include "telemetry_sender.h"
 
+#include "autopilot/types.h"
 #include "nvs_ids.h"
-#include "types.h"
 
 LOG_MODULE_REGISTER(main);
 
