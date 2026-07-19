@@ -15,5 +15,24 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 
-add_subdirectory(esc)
-add_subdirectory(mixer)
+project(mixer VERSION 1.0.0)
+
+set(SOURCES
+    mixer.c
+)
+
+# Create the library
+add_library(${PROJECT_NAME} STATIC ${SOURCES})
+
+target_include_directories(${PROJECT_NAME}
+PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# The mixer sources are hardware-agnostic. zephyr_interface only supplies the
+# target compile flags when the library is built inside a Zephyr application;
+# for host builds (unit tests, SITL) the sources compile without it.
+target_link_libraries(${PROJECT_NAME}
+PRIVATE
+    zephyr_interface
+)
