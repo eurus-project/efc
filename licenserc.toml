@@ -35,7 +35,8 @@ includes = [
 
 excludes = [
   "tools/mavlink/**",
-  "tools/jMAVSim/**"
+  "tools/jMAVSim/**",
+  "tools/doctest/**"
 ]
 
 keywords = ["Copyright", "efc"]

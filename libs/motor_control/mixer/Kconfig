@@ -1,0 +1,6 @@
+# MIXER (Motor mixing library) configuration options
+
+menuconfig MIXER
+    bool "Drone motor mixing library"
+    help
+        Enable support for mixer library

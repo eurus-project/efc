@@ -4,3 +4,6 @@
 [submodule "tools/jMAVSim"]
 	path = tools/jMAVSim
 	url = git@github.com:PX4/jMAVSim.git
+[submodule "doctest"]
+	path = libs/third_party/doctest
+	url = https://github.com/doctest/doctest.git
